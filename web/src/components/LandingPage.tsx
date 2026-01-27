@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { FC } from 'react';
 import { IPhoneSimulator } from './IPhoneSimulator';
 import { MetronomeApp } from './MetronomeApp';
@@ -7,11 +7,8 @@ import { AppleWatchMockup } from './AppleWatchMockup';
 export const LandingPage: FC = () => {
   return (
     <div className="min-h-screen w-full relative overflow-hidden" style={{ backgroundColor: 'var(--deep-black)' }}>
-      {/* Animated Sound Wave Background */}
-      <SoundWaveBackground />
-
-      {/* Floating Orbs */}
-      <FloatingOrbs />
+      {/* Particle Wave Mesh Background */}
+      <ParticleWaveBackground />
 
       {/* Scan lines overlay */}
       <div className="fixed inset-0 scan-lines pointer-events-none z-40" />
@@ -21,13 +18,13 @@ export const LandingPage: FC = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110"
               style={{
-                backgroundColor: 'var(--electric-blue)',
-                boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)'
+                background: 'linear-gradient(135deg, var(--electric-blue), var(--cyan-bright))',
+                boxShadow: '0 0 20px rgba(0, 212, 255, 0.4)'
               }}
             >
-              <span className="text-xl">🎵</span>
+              <WaveformIcon className="w-5 h-5" />
             </div>
             <span className="text-xl font-bold tracking-wider transition-all duration-300 group-hover:tracking-widest" style={{ color: 'var(--electric-blue)' }}>
               HAPTIC
@@ -42,12 +39,12 @@ export const LandingPage: FC = () => {
         <div className="max-w-7xl mx-auto">
           {/* Hero Section */}
           <section className="text-center mb-20">
-            <div className="inline-block mb-4 px-4 py-1.5 rounded-full text-sm animate-pulse" style={{
+            <div className="inline-block mb-8 px-4 py-1.5 rounded-full text-sm" style={{
               backgroundColor: 'rgba(0, 212, 255, 0.1)',
               border: '1px solid rgba(0, 212, 255, 0.3)',
               color: 'var(--electric-blue)'
             }}>
-              ⚡ Built for Progressive Metal
+              Built for Progressive Metal
             </div>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-tight">
               Feel the{' '}
@@ -73,8 +70,8 @@ export const LandingPage: FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 auto-rows-[minmax(180px,auto)]">
 
             {/* iPhone Simulator - Large card */}
-            <GlassCard className="md:col-span-2 lg:row-span-3 flex items-center justify-center p-6" delay={0}>
-              <div className="scale-[0.65] md:scale-[0.75] origin-center">
+            <GlassCard className="md:col-span-2 lg:row-span-2 flex items-center justify-center p-2" delay={0}>
+              <div className="scale-[0.9] origin-center">
                 <IPhoneSimulator>
                   <MetronomeApp />
                 </IPhoneSimulator>
@@ -84,14 +81,19 @@ export const LandingPage: FC = () => {
             {/* Prog Metal Time Signatures */}
             <GlassCard className="p-6 flex flex-col justify-between group" delay={100}>
               <div>
-                <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">🎸</div>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+                  border: '1px solid rgba(0,212,255,0.2)'
+                }}>
+                  <TimeSignatureIcon className="w-5 h-5" />
+                </div>
                 <h3 className="text-lg font-bold text-white mb-2">Prog Metal Ready</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
                   7/8, 11/8, 13/16 and more. Built for complex time signatures.
                 </p>
               </div>
               <div className="flex gap-2 mt-4">
-                {['7/8', '11/8', '13/16'].map((ts, i) => (
+                {['7/8', '11/8', '13/16'].map((ts) => (
                   <span
                     key={ts}
                     className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all duration-300 hover:scale-105"
@@ -99,7 +101,6 @@ export const LandingPage: FC = () => {
                       backgroundColor: 'rgba(0, 212, 255, 0.15)',
                       color: 'var(--electric-blue)',
                       border: '1px solid rgba(0, 212, 255, 0.3)',
-                      animationDelay: `${i * 100}ms`
                     }}
                   >
                     {ts}
@@ -108,13 +109,29 @@ export const LandingPage: FC = () => {
               </div>
             </GlassCard>
 
+            {/* Apple Watch Card */}
+            <GlassCard className="lg:row-span-2 p-6 flex flex-col items-center justify-center" delay={200}>
+              <AppleWatchMockup />
+              <h3 className="text-lg font-bold text-white mt-5 text-center">Apple Watch</h3>
+              <p className="text-sm text-center mt-2 leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
+                Feel the beat on your wrist.
+                <br />
+                <span style={{ color: 'var(--electric-blue)' }}>Silent practice anywhere.</span>
+              </p>
+            </GlassCard>
+
             {/* Precision */}
-            <GlassCard className="p-6 flex flex-col justify-between group" delay={200}>
+            <GlassCard className="p-6 flex flex-col justify-between group" delay={300}>
               <div>
-                <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:animate-pulse">⚡</div>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+                  border: '1px solid rgba(0,212,255,0.2)'
+                }}>
+                  <PrecisionIcon className="w-5 h-5" />
+                </div>
                 <h3 className="text-lg font-bold text-white mb-2">Microsecond Precision</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
-                  No drift. No lag. Absolute timing accuracy for long sessions.
+                  No drift. No lag. Absolute timing accuracy.
                 </p>
               </div>
               <div
@@ -125,21 +142,47 @@ export const LandingPage: FC = () => {
               </div>
             </GlassCard>
 
-            {/* Apple Watch Card */}
-            <GlassCard className="lg:row-span-2 p-6 flex flex-col items-center justify-center" delay={300}>
-              <AppleWatchMockup />
-              <h3 className="text-lg font-bold text-white mt-5 text-center">Apple Watch</h3>
-              <p className="text-sm text-center mt-2 leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
-                Feel the beat on your wrist.
-                <br />
-                <span style={{ color: 'var(--electric-blue)' }}>Silent practice anywhere.</span>
-              </p>
+            {/* Accent Patterns */}
+            <GlassCard className="p-6 group" delay={400}>
+              <div>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+                  border: '1px solid rgba(0,212,255,0.2)'
+                }}>
+                  <PatternIcon className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Accent Patterns</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
+                  Standard, backbeat, djent - design your own groove.
+                </p>
+              </div>
+              <div className="flex gap-1.5 mt-4">
+                {[true, false, true, false, true].map((accent, i) => (
+                  <div
+                    key={i}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all duration-300 hover:scale-110 cursor-pointer"
+                    style={{
+                      backgroundColor: accent ? 'var(--electric-blue)' : 'rgba(255,255,255,0.05)',
+                      color: accent ? 'var(--deep-black)' : 'var(--secondary-text)',
+                      border: accent ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                      boxShadow: accent ? '0 0 15px rgba(0, 212, 255, 0.4)' : 'none',
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                ))}
+              </div>
             </GlassCard>
 
             {/* Tap Tempo */}
-            <GlassCard className="p-6 flex flex-col justify-between group" delay={400}>
+            <GlassCard className="p-6 flex flex-col justify-between group" delay={500}>
               <div>
-                <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-125 cursor-pointer">👆</div>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+                  border: '1px solid rgba(0,212,255,0.2)'
+                }}>
+                  <TapIcon className="w-5 h-5" />
+                </div>
                 <h3 className="text-lg font-bold text-white mb-2">Tap Tempo</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
                   Match any song instantly. Tap to detect BPM.
@@ -161,40 +204,15 @@ export const LandingPage: FC = () => {
               </div>
             </GlassCard>
 
-            {/* Accent Patterns */}
-            <GlassCard className="lg:col-span-2 p-6 group" delay={500}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110">🥁</div>
-                  <h3 className="text-lg font-bold text-white mb-2">Custom Accent Patterns</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
-                    Create your own patterns. Standard, backbeat, djent - or design your own polyrhythmic groove.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-5">
-                {[true, false, false, true, false, true, false].map((accent, i) => (
-                  <div
-                    key={i}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 hover:scale-110 cursor-pointer"
-                    style={{
-                      backgroundColor: accent ? 'var(--electric-blue)' : 'rgba(255,255,255,0.05)',
-                      color: accent ? 'var(--deep-black)' : 'var(--secondary-text)',
-                      border: accent ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                      boxShadow: accent ? '0 0 20px rgba(0, 212, 255, 0.4)' : 'none',
-                      animation: accent ? `beatPulse 0.5s ease-out ${i * 0.1}s` : 'none'
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-
             {/* Haptic Feedback */}
             <GlassCard className="p-6 relative overflow-hidden group" delay={600}>
               <div className="relative z-10">
-                <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:animate-vibrate">📳</div>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+                  border: '1px solid rgba(0,212,255,0.2)'
+                }}>
+                  <HapticIcon className="w-5 h-5" />
+                </div>
                 <h3 className="text-lg font-bold text-white mb-2">Haptic Feedback</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
                   CoreHaptics transient patterns. Feel accents through your device.
@@ -216,7 +234,12 @@ export const LandingPage: FC = () => {
             {/* BPM Range */}
             <GlassCard className="p-6 flex flex-col justify-between group" delay={700}>
               <div>
-                <div className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110">🎚️</div>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+                  border: '1px solid rgba(0,212,255,0.2)'
+                }}>
+                  <BPMIcon className="w-5 h-5" />
+                </div>
                 <h3 className="text-lg font-bold text-white mb-2">Wide BPM Range</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
                   From doom metal to blast beats.
@@ -258,7 +281,7 @@ export const LandingPage: FC = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm" style={{ color: 'var(--tertiary-text)' }}>
-              Built with 🎸 by
+              Built by
             </span>
             <span className="text-sm font-bold" style={{ color: 'var(--electric-blue)' }}>
               TheGridBase
@@ -280,104 +303,104 @@ export const LandingPage: FC = () => {
           0%, 100% { transform: scaleY(1); }
           50% { transform: scaleY(1.5); }
         }
-        @keyframes beatPulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-          100% { transform: scale(1); }
-        }
-        @keyframes vibrate {
-          0%, 100% { transform: translateX(0) scale(1.1); }
-          25% { transform: translateX(-2px) scale(1.1); }
-          75% { transform: translateX(2px) scale(1.1); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes wave {
-          0% { transform: translateX(0) scaleY(1); }
-          50% { transform: translateX(-25%) scaleY(0.8); }
-          100% { transform: translateX(-50%) scaleY(1); }
-        }
-        .animate-vibrate {
-          animation: vibrate 0.3s ease-in-out;
-        }
       `}</style>
     </div>
   );
 };
 
-// Sound Wave Background Component
-const SoundWaveBackground: FC = () => {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Gradient overlay */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse at 50% 0%, rgba(0, 212, 255, 0.08) 0%, transparent 50%)'
-        }}
-      />
+// Particle Wave Mesh Background - Full screen animated particle system
+const ParticleWaveBackground: FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-      {/* Sound waves */}
-      <svg
-        className="absolute bottom-0 left-0 w-[200%] h-64 opacity-20"
-        style={{ animation: 'wave 8s linear infinite' }}
-        viewBox="0 0 1440 320"
-        preserveAspectRatio="none"
-      >
-        <path
-          fill="var(--electric-blue)"
-          d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
-        />
-      </svg>
-      <svg
-        className="absolute bottom-0 left-0 w-[200%] h-48 opacity-10"
-        style={{ animation: 'wave 12s linear infinite reverse' }}
-        viewBox="0 0 1440 320"
-        preserveAspectRatio="none"
-      >
-        <path
-          fill="var(--cyan-bright)"
-          d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,90.7C672,85,768,107,864,144C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
-        />
-      </svg>
-    </div>
-  );
-};
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-// Floating Orbs Component
-const FloatingOrbs: FC = () => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationId: number;
+    let particles: { x: number; y: number; baseY: number; speed: number; size: number; opacity: number }[] = [];
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
+    };
+
+    const initParticles = () => {
+      particles = [];
+      const cols = Math.floor(canvas.width / 30);
+      const rows = Math.floor(canvas.height / 30);
+
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          particles.push({
+            x: (i / cols) * canvas.width + (Math.random() - 0.5) * 20,
+            y: (j / rows) * canvas.height,
+            baseY: (j / rows) * canvas.height,
+            speed: 0.5 + Math.random() * 1.5,
+            size: 1 + Math.random() * 2,
+            opacity: 0.1 + Math.random() * 0.4
+          });
+        }
+      }
+    };
+
+    let time = 0;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      time += 0.01;
+
+      // Draw particles and connections
+      particles.forEach((p, i) => {
+        // Wave motion
+        const waveOffset = Math.sin(p.x * 0.005 + time) * 40 + Math.sin(p.x * 0.003 + time * 0.5) * 20;
+        p.y = p.baseY + waveOffset;
+
+        // Draw particle
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 212, 255, ${p.opacity})`;
+        ctx.fill();
+
+        // Draw connections to nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 60) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(0, 212, 255, ${0.1 * (1 - dist / 60)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      });
+
+      animationId = requestAnimationFrame(animate);
+    };
+
+    resize();
+    animate();
+
+    window.addEventListener('resize', resize);
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationId);
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      <div
-        className="absolute w-96 h-96 rounded-full blur-3xl opacity-20"
-        style={{
-          background: 'var(--electric-blue)',
-          top: '10%',
-          right: '10%',
-          animation: 'float 6s ease-in-out infinite'
-        }}
-      />
-      <div
-        className="absolute w-64 h-64 rounded-full blur-3xl opacity-10"
-        style={{
-          background: 'var(--cyan-bright)',
-          bottom: '20%',
-          left: '5%',
-          animation: 'float 8s ease-in-out infinite reverse'
-        }}
-      />
-      <div
-        className="absolute w-48 h-48 rounded-full blur-3xl opacity-15"
-        style={{
-          background: 'var(--cyan-muted)',
-          top: '50%',
-          left: '30%',
-          animation: 'float 10s ease-in-out infinite'
-        }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-0"
+      style={{ opacity: 0.6 }}
+    />
   );
 };
 
@@ -404,9 +427,9 @@ const GlassCard: FC<{ children: React.ReactNode; className?: string; delay?: num
         ${className}
       `}
       style={{
-        backgroundColor: 'rgba(20, 20, 26, 0.6)',
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(15, 15, 20, 0.7)',
+        borderColor: 'rgba(0, 212, 255, 0.15)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
       }}
     >
       {children}
@@ -442,4 +465,58 @@ const AppStoreButton: FC<{ large?: boolean }> = ({ large = false }) => (
       </div>
     </div>
   </button>
+);
+
+// Icon Components - Clean SVG icons
+const WaveformIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M2 12h2l2-7 3 14 3-10 2 6 2-3h6" style={{ stroke: 'var(--deep-black)' }} />
+  </svg>
+);
+
+const TimeSignatureIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="var(--electric-blue)" strokeWidth="2" strokeLinecap="round">
+    <path d="M12 3v18M8 7h8M8 17h8" />
+  </svg>
+);
+
+const PrecisionIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="var(--electric-blue)" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" fill="var(--electric-blue)" />
+  </svg>
+);
+
+const PatternIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="var(--electric-blue)" strokeWidth="2" strokeLinecap="round">
+    <rect x="3" y="8" width="4" height="8" rx="1" fill="var(--electric-blue)" />
+    <rect x="10" y="11" width="4" height="5" rx="1" />
+    <rect x="17" y="6" width="4" height="10" rx="1" fill="var(--electric-blue)" />
+  </svg>
+);
+
+const TapIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="var(--electric-blue)" strokeWidth="2" strokeLinecap="round">
+    <path d="M12 2v4M12 18v4M4 12H2M22 12h-2M6.34 6.34L4.93 4.93M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M19.07 19.07l-1.41-1.41" />
+    <circle cx="12" cy="12" r="4" fill="var(--electric-blue)" />
+  </svg>
+);
+
+const HapticIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="var(--electric-blue)" strokeWidth="2" strokeLinecap="round">
+    <path d="M5.5 8.5a7 7 0 0 1 13 0" />
+    <path d="M8.5 11.5a3 3 0 0 1 7 0" />
+    <circle cx="12" cy="16" r="2" fill="var(--electric-blue)" />
+  </svg>
+);
+
+const BPMIcon: FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="var(--electric-blue)" strokeWidth="2" strokeLinecap="round">
+    <path d="M12 2L12 22" />
+    <path d="M17 7L12 2L7 7" />
+    <path d="M7 17L12 22L17 17" />
+    <path d="M4 12H8" />
+    <path d="M16 12H20" />
+  </svg>
 );
