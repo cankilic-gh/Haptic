@@ -110,15 +110,16 @@ export const ArcSlider: FC<ArcSliderProps> = ({
     window.addEventListener('touchend', handleTouchEnd);
   };
 
-  // Tick marks at landmarks
-  const landmarks = [60, 80, 100, 120, 140, 160, 180, 200, 240];
+  // Evenly spaced tick marks (9 ticks along the arc)
+  const tickCount = 9;
+  const tickPositions = Array.from({ length: tickCount }, (_, i) => i / (tickCount - 1));
 
   return (
     <svg
       ref={svgRef}
       width="100%"
-      height="100"
-      viewBox="0 0 200 120"
+      height="130"
+      viewBox="0 0 200 160"
       className="cursor-pointer select-none"
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
@@ -152,24 +153,22 @@ export const ArcSlider: FC<ArcSliderProps> = ({
         strokeLinecap="round"
       />
 
-      {/* Tick marks - light up when slider passes them */}
-      {landmarks.map((landmark) => {
-        if (landmark < min || landmark > max) return null;
-        const tickProgress = (landmark - min) / (max - min);
+      {/* Tick marks - evenly spaced, light up when slider passes them */}
+      {tickPositions.map((tickProgress, index) => {
         const tickAngle = startAngle + tickProgress * sweepAngle;
         const innerRadius = radius - 12;
         const pos = {
           x: cx + innerRadius * Math.cos((tickAngle * Math.PI) / 180),
           y: cy + innerRadius * Math.sin((tickAngle * Math.PI) / 180),
         };
-        const isPassed = value >= landmark;
-        const isExact = value === landmark;
+        const isPassed = progress >= tickProgress;
+        const isNear = Math.abs(progress - tickProgress) < 0.02;
         return (
           <circle
-            key={landmark}
+            key={index}
             cx={pos.x}
             cy={pos.y}
-            r={isExact ? 3 : 2}
+            r={isNear ? 3 : 2}
             fill={isPassed ? 'var(--electric-blue)' : 'var(--tertiary-text)'}
             filter={isPassed ? 'drop-shadow(0 0 4px var(--electric-blue))' : undefined}
             style={{ transition: 'all 0.15s ease-out' }}

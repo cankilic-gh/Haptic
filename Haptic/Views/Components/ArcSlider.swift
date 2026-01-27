@@ -12,8 +12,8 @@ struct ArcSlider: View {
     let lineWidth: CGFloat = 8
     let glowRadius: CGFloat = 12
 
-    // Haptic landmarks (strong feedback at these points)
-    private let landmarks: [Int] = [60, 80, 100, 120, 140, 160, 180, 200, 240]
+    // Evenly spaced tick marks
+    private let tickCount = 9
 
     // Gesture state
     @State private var isDragging = false
@@ -59,11 +59,9 @@ struct ArcSlider: View {
                     .shadow(color: temperatureColor, radius: isDragging ? 12 : 6)
                     .position(thumbPosition(radius: radius, center: center))
 
-                // Tick marks at landmarks
-                ForEach(landmarks, id: \.self) { landmark in
-                    if range.contains(landmark) {
-                        tickMark(for: landmark, radius: radius, center: center)
-                    }
+                // Evenly spaced tick marks
+                ForEach(0..<tickCount, id: \.self) { index in
+                    tickMark(at: Double(index) / Double(tickCount - 1), radius: radius, center: center)
                 }
             }
             .frame(width: size, height: size)
@@ -130,19 +128,18 @@ struct ArcSlider: View {
         return CGPoint(x: x, y: y)
     }
 
-    private func tickMark(for landmark: Int, radius: CGFloat, center: CGPoint) -> some View {
-        let landmarkProgress = Double(landmark - range.lowerBound) / Double(range.upperBound - range.lowerBound)
-        let angle = Angle(degrees: 135 + (270 * landmarkProgress))
+    private func tickMark(at tickProgress: Double, radius: CGFloat, center: CGPoint) -> some View {
+        let angle = Angle(degrees: 135 + (270 * tickProgress))
         let innerRadius = radius - 15
         let x = center.x + innerRadius * cos(CGFloat(angle.radians))
         let y = center.y + innerRadius * sin(CGFloat(angle.radians))
 
-        let isPassed = value >= landmark
-        let isExact = value == landmark
+        let isPassed = progress >= tickProgress
+        let isNear = abs(progress - tickProgress) < 0.02
 
         return Circle()
             .fill(isPassed ? HapticColors.electricBlue : HapticColors.tertiaryText)
-            .frame(width: isExact ? 6 : 4, height: isExact ? 6 : 4)
+            .frame(width: isNear ? 6 : 4, height: isNear ? 6 : 4)
             .shadow(color: isPassed ? HapticColors.electricBlue.opacity(0.8) : .clear, radius: 4)
             .position(x: x, y: y)
             .animation(.easeOut(duration: 0.15), value: isPassed)
