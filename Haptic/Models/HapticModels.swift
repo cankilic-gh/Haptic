@@ -89,28 +89,35 @@ struct PracticeSession: Identifiable, Codable {
 
 // MARK: - Design System
 
-/// RiffForge-inspired color palette
+/// RiffForge-inspired color palette - MONOCHROMATIC CYAN
+/// Single accent color family for visual consistency
 enum HapticColors {
     // Primary backgrounds
-    static let deepBlack = Color(hex: "0A0A0A")
-    static let charcoal = Color(hex: "1C1C1E")
-    static let darkGray = Color(hex: "2C2C2E")
+    static let deepBlack = Color(hex: "0A0A0F")      // Slight blue undertone
+    static let charcoal = Color(hex: "14141A")       // Card backgrounds
+    static let darkGray = Color(hex: "1E1E26")       // Elevated surfaces
 
-    // Accent colors
-    static let electricBlue = Color(hex: "00D4FF")
-    static let neonGreen = Color(hex: "39FF14")
-    static let accentPurple = Color(hex: "BF40BF")
-    static let warningRed = Color(hex: "FF3B30")
+    // Accent colors - CYAN FAMILY ONLY
+    static let electricBlue = Color(hex: "00D4FF")   // Primary accent
+    static let cyanBright = Color(hex: "5CFFFF")     // Current beat (bright cyan)
+    static let cyanMuted = Color(hex: "0099B8")      // Slider mid-range
+    static let cyanDark = Color(hex: "006680")       // Inactive/dim states
+
+    // Legacy (keeping for compatibility but avoid using)
+    static let neonGreen = cyanBright               // Remapped to cyan
+    static let accentPurple = Color(hex: "0088AA")  // Remapped to dark cyan
+    static let warningRed = Color(hex: "FF6B6B")    // Softer red for errors
 
     // Text colors
     static let primaryText = Color.white
-    static let secondaryText = Color(hex: "8E8E93")
-    static let tertiaryText = Color(hex: "48484A")
+    static let secondaryText = Color(hex: "7A8A99")  // Cooler gray
+    static let tertiaryText = Color(hex: "3A4550")   // Darker cool gray
 
-    // Beat indicator colors
-    static let accentBeat = electricBlue
-    static let normalBeat = Color(hex: "636366")
-    static let currentBeat = neonGreen
+    // Beat indicator colors - MONOCHROMATIC
+    static let accentBeat = electricBlue            // Accented beat marker
+    static let normalBeat = Color(hex: "3A4550")    // Normal beat (dark)
+    static let currentBeat = cyanBright             // Current beat (WHITE-CYAN)
+    static let currentBeatAccent = Color.white      // Current + Accent = WHITE
 }
 
 // MARK: - Color Extension

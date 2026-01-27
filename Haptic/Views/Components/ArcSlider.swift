@@ -89,19 +89,21 @@ struct ArcSlider: View {
         return min(max(normalized, 0), 1)
     }
 
-    /// Color shifts from cool cyan (slow) to warm magenta (fast)
+    /// Smooth gradient within cyan family - dark to bright as tempo increases
     private var temperatureColor: Color {
-        let normalized = progress
-        if normalized < 0.5 {
-            // Cyan to blue transition
-            return HapticColors.electricBlue
-        } else if normalized < 0.75 {
-            // Blue to purple transition
-            return Color(red: 0.5, green: 0.2, blue: 1.0)
-        } else {
-            // Purple to magenta (danger zone!)
-            return HapticColors.accentPurple
-        }
+        let t = progress // 0.0 to 1.0
+
+        // Smooth interpolation: dark cyan → electric cyan → bright cyan
+        // Using HSB for smoother color transitions
+        // Hue: 190° (cyan) - stays constant
+        // Saturation: 100% → 80% (slightly desaturates at high tempo)
+        // Brightness: 50% → 100% (gets brighter with tempo)
+
+        let hue: Double = 190.0 / 360.0 // Cyan hue
+        let saturation: Double = 1.0 - (t * 0.2) // 100% → 80%
+        let brightness: Double = 0.5 + (t * 0.5) // 50% → 100%
+
+        return Color(hue: hue, saturation: saturation, brightness: brightness)
     }
 
     // MARK: - Path Helpers

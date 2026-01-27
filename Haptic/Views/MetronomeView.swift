@@ -75,9 +75,9 @@ struct MetronomeView: View {
             // Watch connection indicator
             HStack(spacing: 6) {
                 Circle()
-                    .fill(watchSync.isReachable ? HapticColors.neonGreen : HapticColors.warningRed)
+                    .fill(watchSync.isReachable ? HapticColors.electricBlue : HapticColors.warningRed)
                     .frame(width: 8, height: 8)
-                    .neonGlow(color: watchSync.isReachable ? HapticColors.neonGreen : HapticColors.warningRed, radius: 4)
+                    .neonGlow(color: watchSync.isReachable ? HapticColors.electricBlue : HapticColors.warningRed, radius: 4)
 
                 Text(watchSync.isReachable ? "WATCH LINKED" : "WATCH OFFLINE")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -341,7 +341,7 @@ struct CyberpunkBeatCell: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(borderColor, lineWidth: 1)
                     )
-                    .frame(height: 50)
+                    .frame(height: 60)
 
                 // Beat number
                 Text("\(index + 1)")
@@ -368,7 +368,8 @@ struct CyberpunkBeatCell: View {
 
     private var backgroundColor: Color {
         if isCurrent {
-            return isAccented ? HapticColors.electricBlue : HapticColors.neonGreen
+            // Monochromatic: accented current = white, normal current = bright cyan
+            return isAccented ? HapticColors.currentBeatAccent : HapticColors.currentBeat
         }
         return HapticColors.charcoal
     }
