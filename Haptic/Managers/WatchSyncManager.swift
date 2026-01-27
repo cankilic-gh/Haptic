@@ -1,12 +1,14 @@
 import Foundation
-import WatchConnectivity
 import Combine
+
+#if canImport(WatchConnectivity)
+import WatchConnectivity
+#endif
 
 /// WatchSyncManager - Real-time iPhone ↔ Watch Communication
 /// Handles bidirectional sync of BPM, play state, time signatures, and accent patterns.
 ///
-/// Uses WCSession for immediate message delivery and application context
-/// for state persistence when the companion app isn't active.
+/// Note: WatchConnectivity only works when Watch app target is added.
 
 final class WatchSyncManager: NSObject, ObservableObject {
 
@@ -17,18 +19,18 @@ final class WatchSyncManager: NSObject, ObservableObject {
     @Published private(set) var isReachable: Bool = false
     @Published private(set) var isPaired: Bool = false
     @Published private(set) var isWatchAppInstalled: Bool = false
-    @Published private(set) var activationState: WCSessionActivationState = .notActivated
     @Published private(set) var lastSyncTime: Date?
 
     // MARK: - Sync State
     @Published var syncedState: MetronomeState = .default
 
-    // MARK: - Session
-    private var session: WCSession?
-
     // MARK: - Callbacks
     var onStateReceived: ((MetronomeState) -> Void)?
     var onCommandReceived: ((MetronomeCommand) -> Void)?
+
+    #if canImport(WatchConnectivity)
+    // MARK: - Session
+    private var session: WCSession?
 
     // MARK: - Message Keys
     private enum MessageKey {
@@ -50,14 +52,18 @@ final class WatchSyncManager: NSObject, ObservableObject {
         case ping = "ping"
         case pong = "pong"
     }
+    #endif
 
     // MARK: - Initialization
 
     private override init() {
         super.init()
+        #if canImport(WatchConnectivity)
         setupSession()
+        #endif
     }
 
+    #if canImport(WatchConnectivity)
     private func setupSession() {
         guard WCSession.isSupported() else {
             print("WatchSyncManager: WatchConnectivity not supported")
@@ -68,26 +74,25 @@ final class WatchSyncManager: NSObject, ObservableObject {
         session?.delegate = self
         session?.activate()
     }
+    #endif
 
     // MARK: - Public API
 
     /// Send current metronome state to Watch
     func syncState(_ state: MetronomeState) {
+        #if canImport(WatchConnectivity)
         guard let session = session, session.activationState == .activated else {
-            print("WatchSyncManager: Session not activated")
             return
         }
 
         let message = createStateMessage(state)
 
-        // Use sendMessage for immediate delivery if reachable
         if session.isReachable {
             session.sendMessage(message, replyHandler: nil) { error in
                 print("WatchSyncManager: Failed to send message: \(error)")
             }
         }
 
-        // Also update application context for persistent sync
         do {
             try session.updateApplicationContext(message)
             syncedState = state
@@ -95,12 +100,16 @@ final class WatchSyncManager: NSObject, ObservableObject {
         } catch {
             print("WatchSyncManager: Failed to update context: \(error)")
         }
+        #else
+        syncedState = state
+        lastSyncTime = Date()
+        #endif
     }
 
     /// Send a command to Watch (play, stop, etc.)
     func sendCommand(_ command: MetronomeCommand) {
+        #if canImport(WatchConnectivity)
         guard let session = session, session.isReachable else {
-            print("WatchSyncManager: Cannot send command - not reachable")
             return
         }
 
@@ -113,10 +122,12 @@ final class WatchSyncManager: NSObject, ObservableObject {
         session.sendMessage(message, replyHandler: nil) { error in
             print("WatchSyncManager: Failed to send command: \(error)")
         }
+        #endif
     }
 
     /// Request current state from Watch
     func requestStateFromWatch() {
+        #if canImport(WatchConnectivity)
         guard let session = session, session.isReachable else { return }
 
         let message: [String: Any] = [
@@ -133,8 +144,10 @@ final class WatchSyncManager: NSObject, ObservableObject {
         }, errorHandler: { error in
             print("WatchSyncManager: Ping failed: \(error)")
         })
+        #endif
     }
 
+    #if canImport(WatchConnectivity)
     // MARK: - Message Creation
 
     private func createStateMessage(_ state: MetronomeState) -> [String: Any] {
@@ -184,8 +197,10 @@ final class WatchSyncManager: NSObject, ObservableObject {
         }
         return MetronomeCommand(rawValue: commandRaw)
     }
+    #endif
 }
 
+#if canImport(WatchConnectivity)
 // MARK: - WCSessionDelegate
 
 extension WatchSyncManager: WCSessionDelegate {
@@ -196,8 +211,6 @@ extension WatchSyncManager: WCSessionDelegate {
         error: Error?
     ) {
         DispatchQueue.main.async {
-            self.activationState = activationState
-
             #if os(iOS)
             self.isPaired = session.isPaired
             self.isWatchAppInstalled = session.isWatchAppInstalled
@@ -219,7 +232,6 @@ extension WatchSyncManager: WCSessionDelegate {
     }
 
     func sessionDidDeactivate(_ session: WCSession) {
-        // Reactivate session for watchOS 6.0+
         session.activate()
     }
     #endif
@@ -281,7 +293,6 @@ extension WatchSyncManager: WCSessionDelegate {
             }
 
         case .ping:
-            // Reply with current state
             let response = createStateMessage(syncedState)
             replyHandler?(response)
 
@@ -290,6 +301,7 @@ extension WatchSyncManager: WCSessionDelegate {
         }
     }
 }
+#endif
 
 // MARK: - Supporting Types
 

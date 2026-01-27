@@ -20,7 +20,12 @@ final class MetronomeManager: ObservableObject {
 
     @Published var bpm: Int = 120 {
         didSet {
-            bpm = max(20, min(300, bpm)) // Clamp to valid range
+            // Clamp to valid range without causing infinite loop
+            let clampedValue = max(20, min(300, bpm))
+            if bpm != clampedValue {
+                bpm = clampedValue
+                return // Exit to avoid double processing
+            }
             if isPlaying {
                 restartTimer()
             }
