@@ -97,7 +97,7 @@ export const MetronomeApp: FC = () => {
         </div>
 
         {/* Play Button */}
-        <div className="mt-auto py-3">
+        <div className="mt-4 pb-2">
           <PlayButton isPlaying={metronome.isPlaying} onClick={metronome.toggle} />
         </div>
       </div>
