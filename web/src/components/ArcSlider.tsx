@@ -152,7 +152,7 @@ export const ArcSlider: FC<ArcSliderProps> = ({
         strokeLinecap="round"
       />
 
-      {/* Tick marks */}
+      {/* Tick marks - light up when slider passes them */}
       {landmarks.map((landmark) => {
         if (landmark < min || landmark > max) return null;
         const tickProgress = (landmark - min) / (max - min);
@@ -162,13 +162,17 @@ export const ArcSlider: FC<ArcSliderProps> = ({
           x: cx + innerRadius * Math.cos((tickAngle * Math.PI) / 180),
           y: cy + innerRadius * Math.sin((tickAngle * Math.PI) / 180),
         };
+        const isPassed = value >= landmark;
+        const isExact = value === landmark;
         return (
           <circle
             key={landmark}
             cx={pos.x}
             cy={pos.y}
-            r="2"
-            fill={value === landmark ? 'var(--electric-blue)' : 'var(--tertiary-text)'}
+            r={isExact ? 3 : 2}
+            fill={isPassed ? 'var(--electric-blue)' : 'var(--tertiary-text)'}
+            filter={isPassed ? 'drop-shadow(0 0 4px var(--electric-blue))' : undefined}
+            style={{ transition: 'all 0.15s ease-out' }}
           />
         );
       })}

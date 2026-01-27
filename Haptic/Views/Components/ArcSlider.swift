@@ -137,10 +137,15 @@ struct ArcSlider: View {
         let x = center.x + innerRadius * cos(CGFloat(angle.radians))
         let y = center.y + innerRadius * sin(CGFloat(angle.radians))
 
+        let isPassed = value >= landmark
+        let isExact = value == landmark
+
         return Circle()
-            .fill(value == landmark ? HapticColors.electricBlue : HapticColors.tertiaryText)
-            .frame(width: 4, height: 4)
+            .fill(isPassed ? HapticColors.electricBlue : HapticColors.tertiaryText)
+            .frame(width: isExact ? 6 : 4, height: isExact ? 6 : 4)
+            .shadow(color: isPassed ? HapticColors.electricBlue.opacity(0.8) : .clear, radius: 4)
             .position(x: x, y: y)
+            .animation(.easeOut(duration: 0.15), value: isPassed)
     }
 
     // MARK: - Gesture Handling
