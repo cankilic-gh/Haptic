@@ -34,6 +34,8 @@ final class MetronomeManager: ObservableObject {
 
     @Published var timeSignature: TimeSignature = .common {
         didSet {
+            // Update accent pattern to match new time signature
+            adjustAccentPattern()
             if isPlaying {
                 stop()
                 start()
