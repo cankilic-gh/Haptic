@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Haptic Design System - Monochromatic Cyan */
+:root {
+  --deep-black: #0A0A0F;
+  --charcoal: #14141A;
+  --dark-gray: #1E1E26;
+  --electric-blue: #00D4FF;
+  --cyan-bright: #5CFFFF;
+  --cyan-muted: #0099B8;
+  --cyan-dark: #006680;
+  --warning-red: #FF6B6B;
+  --primary-text: #FFFFFF;
+  --secondary-text: #7A8A99;
+  --tertiary-text: #3A4550;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #0a0a0f 0%, #0d0d14 50%, #0a0a0f 100%);
+  min-height: 100vh;
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Scan lines effect */
+.scan-lines {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.03) 2px,
+    rgba(255, 255, 255, 0.03) 4px
+  );
+  pointer-events: none;
+}
+
+/* Neon glow effect */
+.neon-glow {
+  filter: drop-shadow(0 0 4px var(--electric-blue))
+          drop-shadow(0 0 8px var(--electric-blue))
+          drop-shadow(0 0 12px rgba(0, 212, 255, 0.5));
+}
+
+.neon-text {
+  text-shadow: 0 0 4px var(--electric-blue),
+               0 0 8px var(--electric-blue),
+               0 0 16px rgba(0, 212, 255, 0.5);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--charcoal);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cyan-dark);
+  border-radius: 2px;
+}
