@@ -176,13 +176,14 @@ export const ArcSlider: FC<ArcSliderProps> = ({
         );
       })}
 
-      {/* Thumb */}
+      {/* Thumb - with smooth transition */}
       <circle
         cx={thumbPos.x}
         cy={thumbPos.y}
         r="8"
         fill={color}
         filter="drop-shadow(0 0 6px var(--electric-blue))"
+        style={{ transition: 'cx 0.15s ease-out, cy 0.15s ease-out, fill 0.15s ease-out' }}
       />
     </svg>
   );

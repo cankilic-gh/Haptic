@@ -1,14 +1,7 @@
-import { IPhoneSimulator } from './components/IPhoneSimulator';
-import { MetronomeApp } from './components/MetronomeApp';
+import { LandingPage } from './components/LandingPage';
 
 const App = () => {
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center p-8">
-      <IPhoneSimulator>
-        <MetronomeApp />
-      </IPhoneSimulator>
-    </div>
-  );
+  return <LandingPage />;
 };
 
 export default App;
