@@ -18,11 +18,11 @@ export const ArcSlider: FC<ArcSliderProps> = ({
 
   const progress = (value - min) / (max - min);
 
-  // Temperature color: smooth cyan gradient based on progress
+  // Temperature color: vibrant cyan that gets brighter/whiter with tempo
   const getTemperatureColor = (t: number) => {
     const hue = 190; // Cyan
-    const saturation = 100 - t * 20; // 100% -> 80%
-    const lightness = 25 + t * 25; // 25% -> 50%
+    const saturation = 100 - t * 15; // 100% -> 85% (stays saturated)
+    const lightness = 40 + t * 40; // 40% -> 80% (much brighter at high tempo)
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
   };
 

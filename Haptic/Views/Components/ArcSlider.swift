@@ -89,19 +89,18 @@ struct ArcSlider: View {
         return min(max(normalized, 0), 1)
     }
 
-    /// Smooth gradient within cyan family - dark to bright as tempo increases
+    /// Vibrant cyan gradient - gets brighter/whiter as tempo increases
     private var temperatureColor: Color {
         let t = progress // 0.0 to 1.0
 
-        // Smooth interpolation: dark cyan → electric cyan → bright cyan
-        // Using HSB for smoother color transitions
+        // Vibrant cyan that approaches white at high tempo
         // Hue: 190° (cyan) - stays constant
-        // Saturation: 100% → 80% (slightly desaturates at high tempo)
-        // Brightness: 50% → 100% (gets brighter with tempo)
+        // Saturation: 100% → 70% (slightly desaturates toward white)
+        // Brightness: 60% → 100% (much brighter range)
 
         let hue: Double = 190.0 / 360.0 // Cyan hue
-        let saturation: Double = 1.0 - (t * 0.2) // 100% → 80%
-        let brightness: Double = 0.5 + (t * 0.5) // 50% → 100%
+        let saturation: Double = 1.0 - (t * 0.3) // 100% → 70%
+        let brightness: Double = 0.6 + (t * 0.4) // 60% → 100%
 
         return Color(hue: hue, saturation: saturation, brightness: brightness)
     }
