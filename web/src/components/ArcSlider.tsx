@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import type { FC } from 'react';
 
 interface ArcSliderProps {
@@ -15,8 +15,41 @@ export const ArcSlider: FC<ArcSliderProps> = ({
   max = 300,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const isDraggingRef = useRef(false);
 
-  const progress = (value - min) / (max - min);
+  const targetProgress = (value - min) / (max - min);
+  const [displayProgress, setDisplayProgress] = useState(targetProgress);
+
+  // Animate displayProgress toward targetProgress along the arc
+  useEffect(() => {
+    if (isDraggingRef.current) {
+      // During drag, update immediately
+      setDisplayProgress(targetProgress);
+      return;
+    }
+
+    // Smooth animation when clicking (not dragging)
+    const animationDuration = 300; // ms
+    const startProgress = displayProgress;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const t = Math.min(elapsed / animationDuration, 1);
+
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      const newProgress = startProgress + (targetProgress - startProgress) * eased;
+      setDisplayProgress(newProgress);
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [targetProgress]);
 
   // Temperature color: vibrant cyan that gets brighter/whiter with tempo
   const getTemperatureColor = (t: number) => {
@@ -26,7 +59,7 @@ export const ArcSlider: FC<ArcSliderProps> = ({
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
   };
 
-  const color = getTemperatureColor(progress);
+  const color = getTemperatureColor(displayProgress);
 
   // Arc calculations
   const cx = 100;
@@ -45,13 +78,14 @@ export const ArcSlider: FC<ArcSliderProps> = ({
   };
 
   const createArcPath = (start: number, end: number) => {
+    if (end <= start) return '';
     const startPoint = polarToCartesian(start);
     const endPoint = polarToCartesian(end);
     const largeArc = end - start > 180 ? 1 : 0;
     return `M ${startPoint.x} ${startPoint.y} A ${radius} ${radius} 0 ${largeArc} 1 ${endPoint.x} ${endPoint.y}`;
   };
 
-  const thumbAngle = startAngle + progress * sweepAngle;
+  const thumbAngle = startAngle + displayProgress * sweepAngle;
   const thumbPos = polarToCartesian(thumbAngle);
 
   const handleInteraction = useCallback(
@@ -77,6 +111,7 @@ export const ArcSlider: FC<ArcSliderProps> = ({
   );
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    isDraggingRef.current = true;
     handleInteraction(e.clientX, e.clientY);
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -84,6 +119,7 @@ export const ArcSlider: FC<ArcSliderProps> = ({
     };
 
     const handleMouseUp = () => {
+      isDraggingRef.current = false;
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
@@ -93,6 +129,7 @@ export const ArcSlider: FC<ArcSliderProps> = ({
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    isDraggingRef.current = true;
     const touch = e.touches[0];
     handleInteraction(touch.clientX, touch.clientY);
 
@@ -102,6 +139,7 @@ export const ArcSlider: FC<ArcSliderProps> = ({
     };
 
     const handleTouchEnd = () => {
+      isDraggingRef.current = false;
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
@@ -134,24 +172,28 @@ export const ArcSlider: FC<ArcSliderProps> = ({
       />
 
       {/* Glow layer */}
-      <path
-        d={createArcPath(startAngle, thumbAngle)}
-        fill="none"
-        stroke={color}
-        strokeWidth="12"
-        strokeLinecap="round"
-        opacity="0.3"
-        filter="blur(4px)"
-      />
+      {displayProgress > 0.001 && (
+        <path
+          d={createArcPath(startAngle, thumbAngle)}
+          fill="none"
+          stroke={color}
+          strokeWidth="12"
+          strokeLinecap="round"
+          opacity="0.3"
+          filter="blur(4px)"
+        />
+      )}
 
       {/* Value arc */}
-      <path
-        d={createArcPath(startAngle, thumbAngle)}
-        fill="none"
-        stroke={color}
-        strokeWidth="8"
-        strokeLinecap="round"
-      />
+      {displayProgress > 0.001 && (
+        <path
+          d={createArcPath(startAngle, thumbAngle)}
+          fill="none"
+          stroke={color}
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+      )}
 
       {/* Tick marks - evenly spaced, light up when slider passes them */}
       {tickPositions.map((tickProgress, index) => {
@@ -161,8 +203,8 @@ export const ArcSlider: FC<ArcSliderProps> = ({
           x: cx + innerRadius * Math.cos((tickAngle * Math.PI) / 180),
           y: cy + innerRadius * Math.sin((tickAngle * Math.PI) / 180),
         };
-        const isPassed = progress >= tickProgress;
-        const isNear = Math.abs(progress - tickProgress) < 0.02;
+        const isPassed = displayProgress >= tickProgress;
+        const isNear = Math.abs(displayProgress - tickProgress) < 0.02;
         return (
           <circle
             key={index}
@@ -171,19 +213,17 @@ export const ArcSlider: FC<ArcSliderProps> = ({
             r={isNear ? 3 : 2}
             fill={isPassed ? 'var(--electric-blue)' : 'var(--tertiary-text)'}
             filter={isPassed ? 'drop-shadow(0 0 4px var(--electric-blue))' : undefined}
-            style={{ transition: 'all 0.15s ease-out' }}
           />
         );
       })}
 
-      {/* Thumb - with smooth transition */}
+      {/* Thumb */}
       <circle
         cx={thumbPos.x}
         cy={thumbPos.y}
         r="8"
         fill={color}
         filter="drop-shadow(0 0 6px var(--electric-blue))"
-        style={{ transition: 'cx 0.15s ease-out, cy 0.15s ease-out, fill 0.15s ease-out' }}
       />
     </svg>
   );
