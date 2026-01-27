@@ -17,11 +17,11 @@ export const BPMDisplay: FC<BPMDisplayProps> = ({
 }) => {
   return (
     <div className="relative flex flex-col items-center">
-      {/* Hexagonal frame */}
+      {/* Hexagonal frame - compact size */}
       <div className="relative">
         <svg
-          width="180"
-          height="180"
+          width="150"
+          height="150"
           viewBox="0 0 200 200"
           className={`transition-all duration-150 ${isPlaying ? 'neon-glow' : ''}`}
         >
@@ -48,23 +48,23 @@ export const BPMDisplay: FC<BPMDisplayProps> = ({
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <button
             onClick={onTap}
-            className="text-6xl font-bold text-white tracking-tight transition-transform active:scale-95"
+            className="text-5xl font-bold text-white tracking-tight transition-transform active:scale-95"
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
             {bpm}
           </button>
           <span
-            className="text-xs tracking-[0.3em] mt-1"
+            className="text-[10px] tracking-[0.3em]"
             style={{ color: 'var(--secondary-text)' }}
           >
             BPM
           </span>
 
           {/* Precision buttons */}
-          <div className="flex gap-6 mt-3">
+          <div className="flex gap-4 mt-2">
             <PrecisionButton onClick={onDecrement} label="−" />
             <span
-              className="text-[8px] tracking-widest self-center"
+              className="text-[7px] tracking-widest self-center"
               style={{ color: 'var(--tertiary-text)' }}
             >
               TAP

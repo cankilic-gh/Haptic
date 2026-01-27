@@ -51,33 +51,37 @@ export const MetronomeApp: FC = () => {
         <div className="w-16" />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-between py-2 z-20">
+      {/* Content - with proper spacing */}
+      <div className="flex-1 flex flex-col items-center z-20 overflow-hidden">
         {/* BPM Display */}
-        <BPMDisplay
-          bpm={metronome.bpm}
-          isPlaying={metronome.isPlaying}
-          onTap={metronome.tap}
-          onIncrement={() => metronome.setBpm((b) => b + 1)}
-          onDecrement={() => metronome.setBpm((b) => b - 1)}
-        />
+        <div className="mt-1">
+          <BPMDisplay
+            bpm={metronome.bpm}
+            isPlaying={metronome.isPlaying}
+            onTap={metronome.tap}
+            onIncrement={() => metronome.setBpm((b) => b + 1)}
+            onDecrement={() => metronome.setBpm((b) => b - 1)}
+          />
+        </div>
 
         {/* Arc Slider */}
-        <div className="w-full px-6">
+        <div className="w-full px-6 -mt-2">
           <ArcSlider value={metronome.bpm} onChange={metronome.setBpm} />
         </div>
 
         {/* Beat Grid */}
-        <BeatGrid
-          accentPattern={metronome.accentPattern}
-          currentBeat={metronome.currentBeat}
-          isPlaying={metronome.isPlaying}
-          onToggleAccent={metronome.toggleAccent}
-          onApplyPreset={metronome.applyPreset}
-        />
+        <div className="mt-1">
+          <BeatGrid
+            accentPattern={metronome.accentPattern}
+            currentBeat={metronome.currentBeat}
+            isPlaying={metronome.isPlaying}
+            onToggleAccent={metronome.toggleAccent}
+            onApplyPreset={metronome.applyPreset}
+          />
+        </div>
 
         {/* Controls Row */}
-        <div className="w-full px-5 flex gap-3">
+        <div className="w-full px-5 flex gap-3 mt-3">
           <ControlCard
             title="TIME SIG"
             value={formatTimeSignature(metronome.timeSignature)}
@@ -93,7 +97,7 @@ export const MetronomeApp: FC = () => {
         </div>
 
         {/* Play Button */}
-        <div className="pb-4">
+        <div className="mt-auto py-3">
           <PlayButton isPlaying={metronome.isPlaying} onClick={metronome.toggle} />
         </div>
       </div>
