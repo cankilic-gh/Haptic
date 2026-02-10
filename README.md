@@ -1,6 +1,15 @@
 # Haptic - Pro Metronome for iOS & watchOS
 
-A professional-grade metronome with CoreHaptics and uninterruptible Apple Watch background execution. Designed for progressive metal guitarists who need sharp, tactile cues.
+**A professional-grade metronome with CoreHaptics and uninterruptible Apple Watch background execution.** Designed for progressive metal guitarists who need sharp, tactile cues.
+
+[![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=for-the-badge&logo=swift)](https://swift.org/)
+[![SwiftUI](https://img.shields.io/badge/SwiftUI-5.0-006AFF?style=for-the-badge&logo=swift)](https://developer.apple.com/xcode/swiftui/)
+[![iOS](https://img.shields.io/badge/iOS-17+-000000?style=for-the-badge&logo=apple)](https://www.apple.com/ios/)
+[![watchOS](https://img.shields.io/badge/watchOS-10+-000000?style=for-the-badge&logo=apple)](https://www.apple.com/watchos/)
+
+🌐 **Web Demo:** [haptic.thegridbase.com](https://haptic.thegridbase.com)
+
+---
 
 ## Features
 
@@ -148,3 +157,12 @@ HapticWatch Extension/     → Your Xcode project's watch extension
 ## License
 
 MIT License - Use freely for your projects.
+
+---
+
+## Author
+
+**Can Kilic**
+
+- Portfolio: [cankilic.com](https://cankilic.com)
+- GitHub: [@cankilic-gh](https://github.com/cankilic-gh)
