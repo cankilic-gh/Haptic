@@ -110,14 +110,40 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Apple Watch Card */}
-            <GlassCard className="lg:row-span-2 p-6 flex flex-col items-center justify-center" delay={200}>
+            <GlassCard className="p-6 flex flex-col items-center justify-center group" delay={200}>
               <AppleWatchMockup />
-              <h3 className="text-lg font-bold text-white mt-5 text-center">Apple Watch</h3>
+              <h3 className="text-lg font-bold text-white mt-4 text-center">Apple Watch</h3>
               <p className="text-sm text-center mt-2 leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
                 Feel the beat on your wrist.
                 <br />
                 <span style={{ color: 'var(--electric-blue)' }}>Silent practice anywhere.</span>
               </p>
+            </GlassCard>
+
+            {/* Chromatic Tuner Card */}
+            <GlassCard className="p-6 flex flex-col items-center justify-center group" delay={250}>
+              <TunerVisual />
+              <h3 className="text-lg font-bold text-white mt-4 text-center">Chromatic Tuner</h3>
+              <p className="text-sm text-center mt-2 leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
+                Professional pitch detection
+                <br />
+                <span style={{ color: 'var(--electric-blue)' }}>with haptic feedback.</span>
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                {['Real-time', '±1 cent', 'Haptic'].map((feature) => (
+                  <span
+                    key={feature}
+                    className="px-2 py-1 rounded-md text-[10px] font-medium"
+                    style={{
+                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                      color: 'var(--electric-blue)',
+                      border: '1px solid rgba(0, 212, 255, 0.2)',
+                    }}
+                  >
+                    {feature}
+                  </span>
+                ))}
+              </div>
             </GlassCard>
 
             {/* Precision */}
@@ -520,3 +546,144 @@ const BPMIcon: FC<{ className?: string }> = ({ className }) => (
     <path d="M16 12H20" />
   </svg>
 );
+
+// Tuner Visual Component - Animated gauge-style tuner
+const TunerVisual: FC = () => {
+  const [needleAngle, setNeedleAngle] = useState(0);
+  const [isInTune, setIsInTune] = useState(false);
+  const [currentNote, setCurrentNote] = useState('A');
+  const notes = ['E', 'A', 'D', 'G', 'B', 'E'];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Simulate tuning - needle oscillates then settles
+      const randomOffset = (Math.random() - 0.5) * 30;
+      const settling = Math.random() > 0.7;
+
+      if (settling) {
+        setNeedleAngle(prev => prev * 0.5);
+        setIsInTune(Math.abs(needleAngle) < 5);
+      } else {
+        setNeedleAngle(randomOffset);
+        setIsInTune(false);
+      }
+
+      // Change note occasionally
+      if (Math.random() > 0.9) {
+        setCurrentNote(notes[Math.floor(Math.random() * notes.length)]);
+      }
+    }, 800);
+
+    return () => clearInterval(interval);
+  }, [needleAngle]);
+
+  return (
+    <div className="relative w-[140px] h-[140px]">
+      {/* Gauge background */}
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        {/* Outer ring */}
+        <circle
+          cx="50"
+          cy="50"
+          r="45"
+          fill="none"
+          stroke="rgba(0, 212, 255, 0.1)"
+          strokeWidth="2"
+        />
+
+        {/* Gauge arc */}
+        <path
+          d="M 15 50 A 35 35 0 0 1 85 50"
+          fill="none"
+          stroke="rgba(0, 212, 255, 0.2)"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+
+        {/* Center indicator (green when in tune) */}
+        <line
+          x1="50"
+          y1="15"
+          x2="50"
+          y2="25"
+          stroke={isInTune ? '#00FF88' : 'var(--electric-blue)'}
+          strokeWidth="3"
+          strokeLinecap="round"
+          style={{
+            filter: isInTune ? 'drop-shadow(0 0 8px #00FF88)' : 'none',
+            transition: 'all 0.2s ease'
+          }}
+        />
+
+        {/* Left/Right markers */}
+        <line x1="20" y1="35" x2="28" y2="40" stroke="rgba(0, 212, 255, 0.4)" strokeWidth="2" strokeLinecap="round" />
+        <line x1="80" y1="35" x2="72" y2="40" stroke="rgba(0, 212, 255, 0.4)" strokeWidth="2" strokeLinecap="round" />
+
+        {/* Needle */}
+        <g style={{
+          transform: `rotate(${needleAngle}deg)`,
+          transformOrigin: '50px 50px',
+          transition: 'transform 0.3s ease-out'
+        }}>
+          <line
+            x1="50"
+            y1="50"
+            x2="50"
+            y2="22"
+            stroke={isInTune ? '#00FF88' : 'var(--electric-blue)'}
+            strokeWidth="2"
+            strokeLinecap="round"
+            style={{
+              filter: isInTune ? 'drop-shadow(0 0 6px #00FF88)' : 'drop-shadow(0 0 4px var(--electric-blue))',
+              transition: 'stroke 0.2s ease, filter 0.2s ease'
+            }}
+          />
+          <circle
+            cx="50"
+            cy="50"
+            r="4"
+            fill={isInTune ? '#00FF88' : 'var(--electric-blue)'}
+            style={{ transition: 'fill 0.2s ease' }}
+          />
+        </g>
+
+        {/* Note display */}
+        <text
+          x="50"
+          y="70"
+          textAnchor="middle"
+          fill="white"
+          fontSize="20"
+          fontWeight="bold"
+          fontFamily="monospace"
+        >
+          {currentNote}
+        </text>
+
+        {/* Cents display */}
+        <text
+          x="50"
+          y="85"
+          textAnchor="middle"
+          fill={isInTune ? '#00FF88' : 'var(--secondary-text)'}
+          fontSize="10"
+          fontFamily="monospace"
+          style={{ transition: 'fill 0.2s ease' }}
+        >
+          {isInTune ? 'IN TUNE' : `${needleAngle > 0 ? '+' : ''}${Math.round(needleAngle)} cents`}
+        </text>
+      </svg>
+
+      {/* Glow effect when in tune */}
+      {isInTune && (
+        <div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle at center, rgba(0, 255, 136, 0.15) 0%, transparent 70%)',
+            animation: 'pulse 1s ease-in-out infinite'
+          }}
+        />
+      )}
+    </div>
+  );
+};

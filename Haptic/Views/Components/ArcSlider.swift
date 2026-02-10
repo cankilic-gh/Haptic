@@ -15,6 +15,9 @@ struct ArcSlider: View {
     // Evenly spaced tick marks
     private let tickCount = 9
 
+    // Landmark tempos for stronger haptic feedback
+    private let landmarks: Set<Int> = [40, 60, 80, 100, 120, 140, 160, 180, 200, 240, 300]
+
     // Gesture state
     @State private var isDragging = false
     @GestureState private var dragLocation: CGPoint = .zero

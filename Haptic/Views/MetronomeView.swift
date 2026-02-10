@@ -10,6 +10,7 @@ struct MetronomeView: View {
     @State private var showingTimeSignaturePicker = false
     @State private var showingPresets = false
     @State private var showingSettings = false
+    @State private var showingTuner = false
     @State private var pulseIntensity: Double = 0
 
     var body: some View {
@@ -66,6 +67,9 @@ struct MetronomeView: View {
         .onChange(of: metronome.isPlaying) { _, _ in
             syncToWatch()
         }
+        .fullScreenCover(isPresented: $showingTuner) {
+            TunerView()
+        }
     }
 
     // MARK: - Header
@@ -95,11 +99,19 @@ struct MetronomeView: View {
 
             Spacer()
 
-            // Settings button
-            Button(action: { showingSettings = true }) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(HapticColors.secondaryText)
+            // Tuner & Settings buttons
+            HStack(spacing: 16) {
+                Button(action: { showingTuner = true }) {
+                    Image(systemName: "tuningfork")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(HapticColors.electricBlue)
+                }
+
+                Button(action: { showingSettings = true }) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(HapticColors.secondaryText)
+                }
             }
         }
         .padding(.horizontal, 20)
