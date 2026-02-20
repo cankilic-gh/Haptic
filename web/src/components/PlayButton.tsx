@@ -9,6 +9,8 @@ export const PlayButton: FC<PlayButtonProps> = ({ isPlaying, onClick }) => {
   return (
     <button
       onClick={onClick}
+      aria-label={isPlaying ? 'Stop metronome' : 'Start metronome'}
+      aria-pressed={isPlaying}
       className="relative w-[70px] h-[70px] rounded-full flex items-center justify-center transition-all active:scale-95"
       style={{
         backgroundColor: isPlaying ? 'var(--electric-blue)' : 'var(--charcoal)',

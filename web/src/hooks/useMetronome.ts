@@ -7,6 +7,36 @@ interface UseMetronomeOptions {
   initialTimeSignature?: TimeSignature;
 }
 
+// Create click sound AudioBuffer (impulse-based for crisp attack)
+const createClickBuffer = (
+  ctx: AudioContext,
+  frequency: number,
+  duration: number,
+  volume: number
+): AudioBuffer => {
+  const sampleRate = ctx.sampleRate;
+  const length = Math.floor(sampleRate * duration);
+  const buffer = ctx.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+
+  // Impulse with exponential decay for sharp click
+  for (let i = 0; i < length; i++) {
+    const t = i / sampleRate;
+    // Sharp attack with fast exponential decay
+    const envelope = Math.exp(-t * 80);
+    // Mix of fundamental and harmonics for click character
+    const fundamental = Math.sin(2 * Math.PI * frequency * t);
+    const harmonic2 = Math.sin(2 * Math.PI * frequency * 2 * t) * 0.5;
+    const harmonic3 = Math.sin(2 * Math.PI * frequency * 3 * t) * 0.25;
+    // Add noise burst for attack transient
+    const noise = (Math.random() * 2 - 1) * Math.exp(-t * 200);
+
+    data[i] = (fundamental + harmonic2 + harmonic3 + noise * 0.3) * envelope * volume;
+  }
+
+  return buffer;
+};
+
 export const useMetronome = (options: UseMetronomeOptions = {}) => {
   const {
     initialBpm = 120,
@@ -29,6 +59,11 @@ export const useMetronome = (options: UseMetronomeOptions = {}) => {
   const nextNoteTimeRef = useRef(0);
   const currentBeatRef = useRef(0);
   const currentSubdivisionRef = useRef(0);
+
+  // Pre-computed click buffers for performance
+  const accentBufferRef = useRef<AudioBuffer | null>(null);
+  const normalBufferRef = useRef<AudioBuffer | null>(null);
+  const subdivisionBufferRef = useRef<AudioBuffer | null>(null);
 
   // Lookahead scheduling parameters
   const scheduleAheadTime = 0.1; // seconds
@@ -95,26 +130,24 @@ export const useMetronome = (options: UseMetronomeOptions = {}) => {
     if (!audioContextRef.current) return;
 
     const ctx = audioContextRef.current;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
+    // Select appropriate pre-computed buffer
+    let buffer: AudioBuffer | null = null;
     if (isSubdivision) {
-      osc.frequency.value = 800;
-      gain.gain.value = 0.05;
+      buffer = subdivisionBufferRef.current;
     } else if (isAccent) {
-      osc.frequency.value = 1200;
-      gain.gain.value = 0.15;
+      buffer = accentBufferRef.current;
     } else {
-      osc.frequency.value = 900;
-      gain.gain.value = 0.1;
+      buffer = normalBufferRef.current;
     }
 
-    osc.start(time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-    osc.stop(time + 0.05);
+    if (!buffer) return;
+
+    // Create buffer source for playback
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(time);
 
     // Trigger haptic feedback on supported devices
     if ('vibrate' in navigator && !isSubdivision) {
@@ -164,8 +197,15 @@ export const useMetronome = (options: UseMetronomeOptions = {}) => {
   const start = useCallback(() => {
     if (isPlaying) return;
 
-    audioContextRef.current = new AudioContext();
-    nextNoteTimeRef.current = audioContextRef.current.currentTime;
+    const ctx = new AudioContext();
+    audioContextRef.current = ctx;
+
+    // Pre-compute click buffers for crisp, click-like sounds
+    accentBufferRef.current = createClickBuffer(ctx, 1200, 0.03, 0.4);
+    normalBufferRef.current = createClickBuffer(ctx, 900, 0.025, 0.25);
+    subdivisionBufferRef.current = createClickBuffer(ctx, 800, 0.015, 0.1);
+
+    nextNoteTimeRef.current = ctx.currentTime;
     currentBeatRef.current = 0;
     currentSubdivisionRef.current = 0;
     setCurrentBeat(0);
@@ -185,6 +225,11 @@ export const useMetronome = (options: UseMetronomeOptions = {}) => {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
+
+    // Clear buffer refs
+    accentBufferRef.current = null;
+    normalBufferRef.current = null;
+    subdivisionBufferRef.current = null;
 
     setIsPlaying(false);
     setCurrentBeat(0);
@@ -209,6 +254,28 @@ export const useMetronome = (options: UseMetronomeOptions = {}) => {
       }
     };
   }, [isPlaying, scheduler]);
+
+  // Handle visibility change - suspend AudioContext when page is hidden
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+
+      if (document.hidden) {
+        // Page going to background - suspend AudioContext
+        ctx.suspend();
+      } else {
+        // Page coming back to foreground - resume AudioContext
+        ctx.resume();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Tap tempo
   const tapTimesRef = useRef<number[]>([]);
