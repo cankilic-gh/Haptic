@@ -343,6 +343,22 @@ struct CyberpunkBeatCell: View {
     let isCurrent: Bool
     let onTap: () -> Void
 
+    // Accessibility label describing the beat state
+    private var accessibilityLabelText: String {
+        var label = "Beat \(index + 1)"
+        if isAccented {
+            label += ", accented"
+        }
+        if isCurrent {
+            label += ", currently playing"
+        }
+        return label
+    }
+
+    private var accessibilityHintText: String {
+        isAccented ? "Double tap to remove accent" : "Double tap to add accent"
+    }
+
     var body: some View {
         Button(action: onTap) {
             ZStack {
@@ -376,6 +392,9 @@ struct CyberpunkBeatCell: View {
         .buttonStyle(ScaleButtonStyle())
         .scaleEffect(isCurrent ? 1.08 : 1.0)
         .animation(.spring(response: 0.15, dampingFraction: 0.6), value: isCurrent)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityHint(accessibilityHintText)
+        .accessibilityAddTraits(isAccented ? .isSelected : [])
     }
 
     private var backgroundColor: Color {

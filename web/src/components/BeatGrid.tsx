@@ -40,6 +40,8 @@ export const BeatGrid: FC<BeatGridProps> = ({
       {/* Beat cells */}
       <div
         className="grid gap-2"
+        role="group"
+        aria-label="Beat pattern grid"
         style={{
           gridTemplateColumns: `repeat(${Math.min(accentPattern.length, 8)}, 1fr)`,
         }}
@@ -100,9 +102,14 @@ const BeatCell: FC<BeatCellProps> = ({ index, isAccented, isCurrent, onClick }) 
     return isAccented ? 'var(--primary-text)' : 'var(--secondary-text)';
   };
 
+  // Accessibility label
+  const ariaLabel = `Beat ${index + 1}${isAccented ? ', accented' : ''}${isCurrent ? ', currently playing' : ''}. ${isAccented ? 'Click to remove accent' : 'Click to add accent'}`;
+
   return (
     <button
       onClick={onClick}
+      aria-label={ariaLabel}
+      aria-pressed={isAccented}
       className="relative rounded-lg flex items-center justify-center transition-all active:scale-95"
       style={{
         backgroundColor: getBackgroundColor(),

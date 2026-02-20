@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - Metronome Preset
 
 /// A saved metronome configuration for quick recall
-struct MetronomePreset: Identifiable, Codable {
+struct MetronomePreset: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String
     var bpm: Int
@@ -12,8 +12,14 @@ struct MetronomePreset: Identifiable, Codable {
     var accentPattern: [Bool]
     var subdivisionEnabled: Bool
     var subdivisionType: SubdivisionType
-    var createdAt: Date
+    let createdAt: Date
     var updatedAt: Date
+
+    // CodingKeys for JSON persistence
+    enum CodingKeys: String, CodingKey {
+        case id, name, bpm, timeSignature, accentPattern
+        case subdivisionEnabled, subdivisionType, createdAt, updatedAt
+    }
 
     init(
         id: UUID = UUID(),
