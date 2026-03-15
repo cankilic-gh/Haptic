@@ -17,6 +17,7 @@ final class HapticEngine: ObservableObject {
     // MARK: - Published State
     @Published private(set) var isAvailable: Bool = false
     @Published private(set) var isRunning: Bool = false
+    @Published var soundEnabled: Bool = true
 
     // MARK: - CoreHaptics
     private var engine: CHHapticEngine?
@@ -24,6 +25,9 @@ final class HapticEngine: ObservableObject {
     private var normalBeatPlayer: CHHapticPatternPlayer?
     private var subdivisionPlayer: CHHapticPatternPlayer?
     private var ghostNotePlayer: CHHapticPatternPlayer?
+
+    // MARK: - Audio Click Engine
+    private let audioClick = AudioClickEngine()
 
     // MARK: - Haptic Pattern Definitions
 
@@ -52,7 +56,11 @@ final class HapticEngine: ObservableObject {
 
     private func setupEngine() {
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
+            // No haptics (Simulator or old device) - audio still works
             isAvailable = false
+            #if DEBUG
+            print("HapticEngine: Haptics not available, audio-only mode")
+            #endif
             return
         }
 
@@ -188,16 +196,22 @@ final class HapticEngine: ObservableObject {
     // MARK: - Engine Control
 
     func start() throws {
-        guard let engine = engine else {
-            throw HapticError.engineNotAvailable
+        // Start audio click engine (works everywhere)
+        if soundEnabled {
+            audioClick.start()
         }
 
-        try engine.start()
+        // Start haptic engine if available
+        if let engine = engine {
+            try engine.start()
+        }
+
         isRunning = true
     }
 
     func stop() {
         engine?.stop(completionHandler: nil)
+        audioClick.stop()
         isRunning = false
     }
 
@@ -206,6 +220,8 @@ final class HapticEngine: ObservableObject {
     /// Play an accented beat (downbeats, emphasized beats)
     func playAccentedBeat() {
         guard isRunning else { return }
+
+        if soundEnabled { audioClick.playAccent() }
 
         do {
             try accentedBeatPlayer?.start(atTime: CHHapticTimeImmediate)
@@ -220,6 +236,8 @@ final class HapticEngine: ObservableObject {
     func playNormalBeat() {
         guard isRunning else { return }
 
+        if soundEnabled { audioClick.playNormal() }
+
         do {
             try normalBeatPlayer?.start(atTime: CHHapticTimeImmediate)
         } catch {
@@ -233,6 +251,8 @@ final class HapticEngine: ObservableObject {
     func playSubdivision() {
         guard isRunning else { return }
 
+        if soundEnabled { audioClick.playSubdivision() }
+
         do {
             try subdivisionPlayer?.start(atTime: CHHapticTimeImmediate)
         } catch {
@@ -245,6 +265,8 @@ final class HapticEngine: ObservableObject {
     /// Play a ghost note (very subtle)
     func playGhostNote() {
         guard isRunning else { return }
+
+        if soundEnabled { audioClick.playGhost() }
 
         do {
             try ghostNotePlayer?.start(atTime: CHHapticTimeImmediate)
