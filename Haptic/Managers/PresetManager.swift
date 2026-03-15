@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// PresetManager - Handles persistence of MetronomePresets via UserDefaults
 /// Provides CRUD operations for user-created presets with automatic sync
@@ -116,7 +117,9 @@ final class PresetManager: ObservableObject {
             decoder.dateDecodingStrategy = .iso8601
             userPresets = try decoder.decode([MetronomePreset].self, from: data)
         } catch {
+            #if DEBUG
             print("PresetManager: Failed to decode presets: \(error)")
+            #endif
             userPresets = []
         }
     }
@@ -128,7 +131,9 @@ final class PresetManager: ObservableObject {
             let data = try encoder.encode(userPresets)
             UserDefaults.standard.set(data, forKey: StorageKeys.userPresets)
         } catch {
+            #if DEBUG
             print("PresetManager: Failed to encode presets: \(error)")
+            #endif
         }
     }
 
@@ -142,7 +147,9 @@ final class PresetManager: ObservableObject {
             encoder.outputFormatting = .prettyPrinted
             return try encoder.encode(userPresets)
         } catch {
+            #if DEBUG
             print("PresetManager: Export failed: \(error)")
+            #endif
             return nil
         }
     }
@@ -168,7 +175,9 @@ final class PresetManager: ObservableObject {
             persistPresets()
             return importedPresets.count
         } catch {
+            #if DEBUG
             print("PresetManager: Import failed: \(error)")
+            #endif
             return 0
         }
     }

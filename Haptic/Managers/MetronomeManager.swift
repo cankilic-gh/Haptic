@@ -114,7 +114,9 @@ final class MetronomeManager: ObservableObject {
         do {
             try hapticEngine.start()
         } catch {
+            #if DEBUG
             print("MetronomeManager: Failed to start haptic engine: \(error)")
+            #endif
         }
 
         // Reset state

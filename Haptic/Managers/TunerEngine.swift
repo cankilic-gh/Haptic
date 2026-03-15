@@ -81,7 +81,9 @@ final class TunerEngine: ObservableObject {
             try? hapticEngine.start()
 
         } catch {
+            #if DEBUG
             print("TunerEngine: Failed to start - \(error)")
+            #endif
             state = .idle
         }
     }
@@ -117,7 +119,7 @@ final class TunerEngine: ObservableObject {
         let session = AVAudioSession.sharedInstance()
 
         // Configure for recording with playback (allows metronome to work)
-        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
+        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetoothHFP])
         try session.setPreferredSampleRate(44100)
         try session.setPreferredIOBufferDuration(0.005) // Low latency
         try session.setActive(true)

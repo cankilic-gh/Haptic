@@ -62,7 +62,9 @@ final class HapticEngine: ObservableObject {
             try preparePatternPlayers()
             isAvailable = true
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to create engine: \(error)")
+            #endif
             isAvailable = false
         }
     }
@@ -76,13 +78,17 @@ final class HapticEngine: ObservableObject {
                 try self?.engine?.start()
                 try self?.preparePatternPlayers()
             } catch {
+                #if DEBUG
                 print("HapticEngine: Failed to restart: \(error)")
+                #endif
             }
         }
 
         // Handle when engine stops (e.g., audio session interruption)
         engine.stoppedHandler = { [weak self] reason in
+            #if DEBUG
             print("HapticEngine stopped: \(reason.rawValue)")
+            #endif
             self?.isRunning = false
         }
 
@@ -204,7 +210,9 @@ final class HapticEngine: ObservableObject {
         do {
             try accentedBeatPlayer?.start(atTime: CHHapticTimeImmediate)
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to play accented beat: \(error)")
+            #endif
         }
     }
 
@@ -215,7 +223,9 @@ final class HapticEngine: ObservableObject {
         do {
             try normalBeatPlayer?.start(atTime: CHHapticTimeImmediate)
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to play normal beat: \(error)")
+            #endif
         }
     }
 
@@ -226,7 +236,9 @@ final class HapticEngine: ObservableObject {
         do {
             try subdivisionPlayer?.start(atTime: CHHapticTimeImmediate)
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to play subdivision: \(error)")
+            #endif
         }
     }
 
@@ -237,7 +249,9 @@ final class HapticEngine: ObservableObject {
         do {
             try ghostNotePlayer?.start(atTime: CHHapticTimeImmediate)
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to play ghost note: \(error)")
+            #endif
         }
     }
 
@@ -300,7 +314,9 @@ final class HapticEngine: ObservableObject {
             try player.start(atTime: CHHapticTimeImmediate)
 
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to play custom pattern: \(error)")
+            #endif
         }
     }
 

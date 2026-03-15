@@ -66,7 +66,9 @@ final class WatchSyncManager: NSObject, ObservableObject {
     #if canImport(WatchConnectivity)
     private func setupSession() {
         guard WCSession.isSupported() else {
+            #if DEBUG
             print("WatchSyncManager: WatchConnectivity not supported")
+            #endif
             return
         }
 
@@ -89,7 +91,9 @@ final class WatchSyncManager: NSObject, ObservableObject {
 
         if session.isReachable {
             session.sendMessage(message, replyHandler: nil) { error in
+                #if DEBUG
                 print("WatchSyncManager: Failed to send message: \(error)")
+                #endif
             }
         }
 
@@ -98,7 +102,9 @@ final class WatchSyncManager: NSObject, ObservableObject {
             syncedState = state
             lastSyncTime = Date()
         } catch {
+            #if DEBUG
             print("WatchSyncManager: Failed to update context: \(error)")
+            #endif
         }
         #else
         syncedState = state
@@ -120,7 +126,9 @@ final class WatchSyncManager: NSObject, ObservableObject {
         ]
 
         session.sendMessage(message, replyHandler: nil) { error in
+            #if DEBUG
             print("WatchSyncManager: Failed to send command: \(error)")
+            #endif
         }
         #endif
     }
@@ -142,7 +150,9 @@ final class WatchSyncManager: NSObject, ObservableObject {
                 }
             }
         }, errorHandler: { error in
+            #if DEBUG
             print("WatchSyncManager: Ping failed: \(error)")
+            #endif
         })
         #endif
     }
@@ -220,7 +230,9 @@ extension WatchSyncManager: WCSessionDelegate {
         }
 
         if let error = error {
+            #if DEBUG
             print("WatchSyncManager: Activation error: \(error)")
+            #endif
         }
     }
 

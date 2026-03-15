@@ -152,7 +152,7 @@ struct ArcSlider: View {
 
     private func updateValue(from location: CGPoint, center: CGPoint, radius: CGFloat) {
         let vector = CGPoint(x: location.x - center.x, y: location.y - center.y)
-        var angle = atan2(vector.y, vector.x)
+        let angle = atan2(vector.y, vector.x)
 
         // Convert to degrees and adjust for our arc orientation
         var degrees = angle * 180 / .pi
