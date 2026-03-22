@@ -1,12 +1,82 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FC } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 import { IPhoneSimulator } from './IPhoneSimulator';
 import { MetronomeApp } from './MetronomeApp';
 import { AppleWatchMockup } from './AppleWatchMockup';
 
+gsap.registerPlugin(ScrollTrigger);
+
 export const LandingPage: FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const bentoRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLElement>(null);
+
+  // Hero entrance animation
+  useGSAP(() => {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+    tl.from('.hero-badge', {
+      y: 30,
+      opacity: 0,
+      duration: 0.6,
+    })
+    .from('.hero-title-line', {
+      y: 60,
+      opacity: 0,
+      duration: 0.8,
+      stagger: 0.15,
+    }, '-=0.3')
+    .from('.hero-subtitle', {
+      y: 30,
+      opacity: 0,
+      duration: 0.6,
+    }, '-=0.4');
+  }, { scope: containerRef });
+
+  // Bento grid scroll-triggered reveals
+  useGSAP(() => {
+    const cards = gsap.utils.toArray<HTMLElement>('.bento-card');
+
+    cards.forEach((card, i) => {
+      gsap.from(card, {
+        y: 60,
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.7,
+        ease: 'power2.out',
+        delay: i * 0.08,
+        scrollTrigger: {
+          trigger: card,
+          start: 'top 88%',
+          toggleActions: 'play none none none',
+        },
+      });
+    });
+  }, { scope: containerRef });
+
+  // CTA section parallax entrance
+  useGSAP(() => {
+    if (!ctaRef.current) return;
+
+    gsap.from(ctaRef.current, {
+      y: 80,
+      opacity: 0,
+      duration: 1,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: ctaRef.current,
+        start: 'top 85%',
+        toggleActions: 'play none none none',
+      },
+    });
+  }, { scope: containerRef });
+
   return (
-    <div className="min-h-screen w-full relative overflow-hidden" style={{ backgroundColor: 'var(--deep-black)' }}>
+    <div ref={containerRef} className="min-h-screen w-full relative overflow-hidden" style={{ backgroundColor: 'var(--deep-black)' }}>
       {/* Particle Wave Mesh Background */}
       <ParticleWaveBackground />
 
@@ -38,8 +108,8 @@ export const LandingPage: FC = () => {
       <main className="relative z-10 pt-28 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Hero Section */}
-          <section className="text-center mb-20">
-            <div className="inline-block mb-8 px-4 py-1.5 rounded-full text-sm" style={{
+          <section ref={heroRef} className="text-center mb-20">
+            <div className="hero-badge inline-block mb-8 px-4 py-1.5 rounded-full text-sm" style={{
               backgroundColor: 'rgba(0, 212, 255, 0.1)',
               border: '1px solid rgba(0, 212, 255, 0.3)',
               color: 'var(--electric-blue)'
@@ -47,9 +117,9 @@ export const LandingPage: FC = () => {
               Built for Progressive Metal
             </div>
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-tight">
-              Feel the{' '}
+              <span className="hero-title-line inline-block">Feel the{' '}</span>
               <span
-                className="relative inline-block"
+                className="hero-title-line relative inline-block"
                 style={{ color: 'var(--electric-blue)' }}
               >
                 <span className="relative z-10 neon-text">Rhythm</span>
@@ -59,7 +129,7 @@ export const LandingPage: FC = () => {
                 />
               </span>
             </h1>
-            <p className="text-xl md:text-2xl max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
+            <p className="hero-subtitle text-xl md:text-2xl max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
               Pro metronome for progressive metal musicians.
               <br />
               <span style={{ color: 'var(--electric-blue)' }}>Precision timing</span> meets <span style={{ color: 'var(--cyan-bright)' }}>haptic feedback</span>.
@@ -67,10 +137,10 @@ export const LandingPage: FC = () => {
           </section>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 auto-rows-[minmax(180px,auto)]">
+          <div ref={bentoRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 auto-rows-[minmax(180px,auto)]">
 
             {/* iPhone Simulator - Large card */}
-            <GlassCard className="md:col-span-2 lg:row-span-2 flex items-center justify-center p-2" delay={0}>
+            <GlassCard className="md:col-span-2 lg:row-span-2 flex items-center justify-center p-2">
               <div className="scale-[0.9] origin-center">
                 <IPhoneSimulator>
                   <MetronomeApp />
@@ -79,7 +149,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Prog Metal Time Signatures */}
-            <GlassCard className="p-6 flex flex-col justify-between group" delay={100}>
+            <GlassCard className="p-6 flex flex-col justify-between group">
               <div>
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
@@ -110,7 +180,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Apple Watch Card */}
-            <GlassCard className="p-6 flex flex-col items-center justify-center group" delay={200}>
+            <GlassCard className="p-6 flex flex-col items-center justify-center group">
               <AppleWatchMockup />
               <h3 className="text-lg font-bold text-white mt-4 text-center">Apple Watch</h3>
               <p className="text-sm text-center mt-2 leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
@@ -121,7 +191,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Chromatic Tuner Card */}
-            <GlassCard className="p-6 flex flex-col items-center justify-center group" delay={250}>
+            <GlassCard className="p-6 flex flex-col items-center justify-center group">
               <TunerVisual />
               <h3 className="text-lg font-bold text-white mt-4 text-center">Chromatic Tuner</h3>
               <p className="text-sm text-center mt-2 leading-relaxed" style={{ color: 'var(--secondary-text)' }}>
@@ -147,7 +217,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Precision */}
-            <GlassCard className="p-6 flex flex-col justify-between group" delay={300}>
+            <GlassCard className="p-6 flex flex-col justify-between group">
               <div>
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
@@ -169,7 +239,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Accent Patterns */}
-            <GlassCard className="p-6 group" delay={400}>
+            <GlassCard className="p-6 group">
               <div>
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
@@ -201,7 +271,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Tap Tempo */}
-            <GlassCard className="p-6 flex flex-col justify-between group" delay={500}>
+            <GlassCard className="p-6 flex flex-col justify-between group">
               <div>
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
@@ -231,7 +301,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* Haptic Feedback */}
-            <GlassCard className="p-6 relative overflow-hidden group" delay={600}>
+            <GlassCard className="p-6 relative overflow-hidden group">
               <div className="relative z-10">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
@@ -258,7 +328,7 @@ export const LandingPage: FC = () => {
             </GlassCard>
 
             {/* BPM Range */}
-            <GlassCard className="p-6 flex flex-col justify-between group" delay={700}>
+            <GlassCard className="p-6 flex flex-col justify-between group">
               <div>
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{
                   background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
@@ -290,7 +360,7 @@ export const LandingPage: FC = () => {
           </div>
 
           {/* CTA Section */}
-          <section className="mt-24 text-center">
+          <section ref={ctaRef} className="mt-24 text-center">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Ready to level up your <span style={{ color: 'var(--electric-blue)' }}>practice</span>?
             </h2>
@@ -430,28 +500,51 @@ const ParticleWaveBackground: FC = () => {
   );
 };
 
-// Glass Card Component with animations
-const GlassCard: FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({
+// Glass Card Component - GSAP handles entrance animation via ScrollTrigger
+const GlassCard: FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className = '',
-  delay = 0
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), delay);
-    return () => clearTimeout(timer);
-  }, [delay]);
+  // GSAP hover glow effect
+  useGSAP(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const handleEnter = () => {
+      gsap.to(card, {
+        scale: 1.02,
+        boxShadow: '0 8px 40px rgba(0, 212, 255, 0.15), 0 0 60px rgba(0, 212, 255, 0.05), inset 0 1px 0 rgba(255,255,255,0.05)',
+        borderColor: 'rgba(0, 212, 255, 0.3)',
+        duration: 0.3,
+        ease: 'power2.out',
+      });
+    };
+
+    const handleLeave = () => {
+      gsap.to(card, {
+        scale: 1,
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
+        borderColor: 'rgba(0, 212, 255, 0.15)',
+        duration: 0.4,
+        ease: 'power2.inOut',
+      });
+    };
+
+    card.addEventListener('mouseenter', handleEnter);
+    card.addEventListener('mouseleave', handleLeave);
+
+    return () => {
+      card.removeEventListener('mouseenter', handleEnter);
+      card.removeEventListener('mouseleave', handleLeave);
+    };
+  }, { scope: cardRef });
 
   return (
     <div
-      className={`
-        rounded-2xl border backdrop-blur-xl
-        transition-all duration-500 ease-out
-        hover:border-opacity-50 hover:scale-[1.02] hover:shadow-lg
-        ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
-        ${className}
-      `}
+      ref={cardRef}
+      className={`bento-card rounded-2xl border backdrop-blur-xl ${className}`}
       style={{
         backgroundColor: 'rgba(15, 15, 20, 0.7)',
         borderColor: 'rgba(0, 212, 255, 0.15)',
@@ -561,7 +654,7 @@ const TunerVisual: FC = () => {
       const settling = Math.random() > 0.7;
 
       if (settling) {
-        setNeedleAngle(prev => prev * 0.5);
+        setNeedleAngle((prev: number) => prev * 0.5);
         setIsInTune(Math.abs(needleAngle) < 5);
       } else {
         setNeedleAngle(randomOffset);
