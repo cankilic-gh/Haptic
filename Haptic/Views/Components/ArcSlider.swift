@@ -1,82 +1,46 @@
 import SwiftUI
 
-/// ArcSlider - Cyberpunk-style circular tempo control
-/// 270-degree arc for sweeping through BPM ranges
-/// Haptic feedback at tempo landmarks
+/// ArcSlider - Cyberpunk potentiometer knob with LED tick ring
+/// Rotary knob control with 270-degree sweep and haptic feedback
 
 struct ArcSlider: View {
     @Binding var value: Int
     let range: ClosedRange<Int>
 
-    // Configuration
-    let lineWidth: CGFloat = 8
-    let glowRadius: CGFloat = 12
-
-    // Evenly spaced tick marks
-    private let tickCount = 9
+    // LED tick ring configuration
+    private let tickCount = 31
+    private let sweepDegrees: Double = 270
+    private let startAngle: Double = 135
 
     // Landmark tempos for stronger haptic feedback
     private let landmarks: Set<Int> = [40, 60, 80, 100, 120, 140, 160, 180, 200, 240, 300]
 
-    // Gesture state
     @State private var isDragging = false
-    @GestureState private var dragLocation: CGPoint = .zero
 
     var body: some View {
         GeometryReader { geometry in
             let size = min(geometry.size.width, geometry.size.height)
-            let center = CGPoint(x: size / 2, y: size / 2)
-            let radius = (size / 2) - lineWidth - glowRadius
+            let center = CGPoint(x: geometry.size.width / 2, y: size / 2)
+            let tickRingRadius = (size / 2) - 4
+            let knobRadius = tickRingRadius - 22
 
             ZStack {
-                // Background track
-                arcPath(radius: radius)
-                    .stroke(
-                        HapticColors.charcoal,
-                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                    )
+                // LED tick ring (outer)
+                ledTickRing(center: center, radius: tickRingRadius)
 
-                // Glow layer (behind the value arc)
-                arcPath(radius: radius, progress: progress)
-                    .stroke(
-                        temperatureColor.opacity(0.5),
-                        style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round)
-                    )
-                    .blur(radius: isDragging ? glowRadius : glowRadius / 2)
-                    .animation(.easeOut(duration: 0.25), value: isDragging)
+                // Knob body
+                knobBody(center: center, radius: knobRadius)
 
-                // Value arc
-                arcPath(radius: radius, progress: progress)
-                    .stroke(
-                        LinearGradient(
-                            colors: [temperatureColor.opacity(0.8), temperatureColor],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                    )
-
-                // Thumb indicator
-                Circle()
-                    .fill(temperatureColor)
-                    .frame(width: isDragging ? lineWidth + 12 : lineWidth + 8,
-                           height: isDragging ? lineWidth + 12 : lineWidth + 8)
-                    .shadow(color: temperatureColor, radius: isDragging ? 16 : 6)
-                    .position(thumbPosition(radius: radius, center: center))
-                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragging)
-
-                // Evenly spaced tick marks
-                ForEach(0..<tickCount, id: \.self) { index in
-                    tickMark(at: Double(index) / Double(tickCount - 1), radius: radius, center: center)
-                }
+                // Position indicator on knob edge
+                knobIndicator(center: center, knobRadius: knobRadius)
             }
-            .frame(width: size, height: size)
+            .frame(width: geometry.size.width, height: size)
             .contentShape(Circle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
                         isDragging = true
-                        updateValue(from: gesture.location, center: center, radius: radius)
+                        updateValue(from: gesture.location, center: center)
                     }
                     .onEnded { _ in
                         isDragging = false
@@ -86,104 +50,232 @@ struct ArcSlider: View {
         .aspectRatio(1, contentMode: .fit)
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Progress
 
     private var progress: Double {
         let normalized = Double(value - range.lowerBound) / Double(range.upperBound - range.lowerBound)
         return min(max(normalized, 0), 1)
     }
 
-    /// Vibrant cyan gradient - gets brighter/whiter as tempo increases
-    private var temperatureColor: Color {
-        let t = progress // 0.0 to 1.0
+    // MARK: - LED Tick Ring
 
-        // Vibrant cyan that approaches white at high tempo
-        // Hue: 190° (cyan) - stays constant
-        // Saturation: 100% → 70% (slightly desaturates toward white)
-        // Brightness: 60% → 100% (much brighter range)
+    private func ledTickRing(center: CGPoint, radius: CGFloat) -> some View {
+        ForEach(0..<tickCount, id: \.self) { index in
+            let tickProgress = Double(index) / Double(tickCount - 1)
+            let isActive = progress >= tickProgress
+            let landmark = isLandmark(tickProgress)
+            let tickLen: CGFloat = landmark ? 11 : 7
+            let tickWidth: CGFloat = landmark ? 3 : 2
 
-        let hue: Double = 190.0 / 360.0 // Cyan hue
-        let saturation: Double = 1.0 - (t * 0.3) // 100% → 70%
-        let brightness: Double = 0.6 + (t * 0.4) // 60% → 100%
-
-        return Color(hue: hue, saturation: saturation, brightness: brightness)
-    }
-
-    // MARK: - Path Helpers
-
-    private func arcPath(radius: CGFloat, progress: Double = 1.0) -> Path {
-        let startAngle = Angle(degrees: 135)  // Bottom-left
-        let endAngle = Angle(degrees: 135 + (270 * progress))  // 270-degree sweep
-
-        return Path { path in
-            path.addArc(
-                center: .zero,
+            ledTick(
+                center: center,
                 radius: radius,
-                startAngle: startAngle,
-                endAngle: endAngle,
-                clockwise: false
+                tickProgress: tickProgress,
+                length: tickLen,
+                width: tickWidth,
+                isActive: isActive
             )
         }
-        .offsetBy(dx: radius + lineWidth + glowRadius, dy: radius + lineWidth + glowRadius)
     }
 
-    private func thumbPosition(radius: CGFloat, center: CGPoint) -> CGPoint {
-        let angle = Angle(degrees: 135 + (270 * progress))
-        let x = center.x + radius * cos(CGFloat(angle.radians))
-        let y = center.y + radius * sin(CGFloat(angle.radians))
-        return CGPoint(x: x, y: y)
-    }
+    private func ledTick(center: CGPoint, radius: CGFloat, tickProgress: Double,
+                         length: CGFloat, width: CGFloat, isActive: Bool) -> some View {
+        let angle = Angle(degrees: startAngle + (sweepDegrees * tickProgress))
+        let midR = radius - length / 2
+        let x = center.x + midR * cos(CGFloat(angle.radians))
+        let y = center.y + midR * sin(CGFloat(angle.radians))
+        let color = isActive ? tickColor(at: tickProgress) : Color(hex: "1A1A22")
 
-    private func tickMark(at tickProgress: Double, radius: CGFloat, center: CGPoint) -> some View {
-        let angle = Angle(degrees: 135 + (270 * tickProgress))
-        let innerRadius = radius - 15
-        let x = center.x + innerRadius * cos(CGFloat(angle.radians))
-        let y = center.y + innerRadius * sin(CGFloat(angle.radians))
-
-        let isPassed = progress >= tickProgress
-        let isNear = abs(progress - tickProgress) < 0.02
-
-        return Circle()
-            .fill(isPassed ? HapticColors.electricBlue : HapticColors.tertiaryText)
-            .frame(width: isNear ? 6 : 4, height: isNear ? 6 : 4)
-            .shadow(color: isPassed ? HapticColors.electricBlue.opacity(0.8) : .clear, radius: 4)
+        return Capsule()
+            .fill(color)
+            .frame(width: width, height: length)
+            .rotationEffect(angle + .degrees(90))
+            .shadow(color: isActive ? color : .clear, radius: isActive ? 2 : 0)
+            .shadow(color: isActive ? color.opacity(0.8) : .clear, radius: isActive ? 5 : 0)
+            .shadow(color: isActive ? color.opacity(0.4) : .clear, radius: isActive ? 10 : 0)
             .position(x: x, y: y)
-            .animation(.easeOut(duration: 0.15), value: isPassed)
+    }
+
+    private func isLandmark(_ tickProgress: Double) -> Bool {
+        let landmarkProgress = landmarks.map { Double($0 - range.lowerBound) / Double(range.upperBound - range.lowerBound) }
+        return landmarkProgress.contains(where: { abs($0 - tickProgress) < 0.02 })
+    }
+
+    private func tickColor(at tickProgress: Double) -> Color {
+        // VU meter: green (0-33%) → yellow (33-66%) → red (66-100%)
+        // Each zone gets brighter toward its end
+
+        if tickProgress < 0.33 {
+            // Green zone - dim to bright green
+            let local = tickProgress / 0.33
+            let brightness = 0.4 + (local * 0.5)
+            return Color(hue: 130.0 / 360.0, saturation: 0.9 - (local * 0.15), brightness: brightness)
+        } else if tickProgress < 0.66 {
+            // Yellow/amber zone
+            let local = (tickProgress - 0.33) / 0.33
+            let hue = (60.0 - local * 20.0) / 360.0 // 60° yellow → 40° amber
+            let brightness = 0.5 + (local * 0.45)
+            return Color(hue: hue, saturation: 0.95 - (local * 0.1), brightness: brightness)
+        } else {
+            // Red zone - amber-red to hot white-red
+            let local = (tickProgress - 0.66) / 0.34
+            let hue = (40.0 - local * 30.0) / 360.0 // 40° amber → 10° hot red
+            let saturation = 0.9 - (local * 0.35) // desaturate toward white-hot
+            let brightness = 0.55 + (local * 0.45)
+            return Color(hue: hue, saturation: saturation, brightness: brightness)
+        }
+    }
+
+    // MARK: - Knob Body
+
+    private func knobBody(center: CGPoint, radius: CGFloat) -> some View {
+        ZStack {
+            // Outer bevel ring (raised edge feel)
+            Circle()
+                .stroke(
+                    AngularGradient(
+                        colors: [
+                            Color.white.opacity(0.15),
+                            Color.white.opacity(0.04),
+                            Color.white.opacity(0.02),
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.15)
+                        ],
+                        center: .center
+                    ),
+                    lineWidth: 2
+                )
+                .frame(width: radius * 2, height: radius * 2)
+                .position(center)
+
+            // Knob face - conical gradient for brushed metal feel
+            Circle()
+                .fill(
+                    AngularGradient(
+                        colors: [
+                            Color(hex: "1C1C24"),
+                            Color(hex: "242430"),
+                            Color(hex: "1A1A22"),
+                            Color(hex: "202028"),
+                            Color(hex: "18181F"),
+                            Color(hex: "222230"),
+                            Color(hex: "1C1C24")
+                        ],
+                        center: .center
+                    )
+                )
+                .frame(width: radius * 2 - 4, height: radius * 2 - 4)
+                .position(center)
+
+            // Top-left highlight (light source reflection)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.white.opacity(0.07),
+                            Color.white.opacity(0.02),
+                            Color.clear
+                        ],
+                        center: UnitPoint(x: 0.35, y: 0.3),
+                        startRadius: 0,
+                        endRadius: radius * 0.8
+                    )
+                )
+                .frame(width: radius * 2 - 4, height: radius * 2 - 4)
+                .position(center)
+
+            // Concentric brushed texture rings
+            ForEach(0..<5, id: \.self) { ring in
+                let ringRadius = radius * (0.25 + Double(ring) * 0.15)
+                Circle()
+                    .stroke(Color.white.opacity(0.025), lineWidth: 0.5)
+                    .frame(width: ringRadius * 2, height: ringRadius * 2)
+                    .position(center)
+            }
+
+            // Center dimple
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(hex: "0E0E14"),
+                            Color(hex: "161620"),
+                            Color.white.opacity(0.03)
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 8
+                    )
+                )
+                .frame(width: 10, height: 10)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                )
+                .position(center)
+
+            // Drag glow
+            if isDragging {
+                Circle()
+                    .stroke(HapticColors.electricBlue.opacity(0.1), lineWidth: 2)
+                    .frame(width: radius * 2 + 4, height: radius * 2 + 4)
+                    .blur(radius: 4)
+                    .position(center)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: isDragging)
+    }
+
+    // MARK: - Knob Indicator (edge-mounted, rotates with value)
+
+    private func knobIndicator(center: CGPoint, knobRadius: CGFloat) -> some View {
+        let angle = Angle(degrees: startAngle + (sweepDegrees * progress))
+        let dotDist = knobRadius - 10
+        let x = center.x + dotDist * cos(CGFloat(angle.radians))
+        let y = center.y + dotDist * sin(CGFloat(angle.radians))
+
+        return ZStack {
+            // Glow
+            Circle()
+                .fill(HapticColors.electricBlue.opacity(0.5))
+                .frame(width: 12, height: 12)
+                .blur(radius: 6)
+                .position(x: x, y: y)
+
+            // Dot
+            Circle()
+                .fill(HapticColors.electricBlue)
+                .frame(width: isDragging ? 6 : 5, height: isDragging ? 6 : 5)
+                .shadow(color: HapticColors.electricBlue, radius: 4)
+                .position(x: x, y: y)
+        }
+        .animation(.easeOut(duration: 0.08), value: progress)
+        .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isDragging)
     }
 
     // MARK: - Gesture Handling
 
-    private func updateValue(from location: CGPoint, center: CGPoint, radius: CGFloat) {
+    private func updateValue(from location: CGPoint, center: CGPoint) {
         let vector = CGPoint(x: location.x - center.x, y: location.y - center.y)
         let angle = atan2(vector.y, vector.x)
 
-        // Convert to degrees and adjust for our arc orientation
         var degrees = angle * 180 / .pi
-
-        // Normalize to our arc range (135 to 405 degrees)
         if degrees < 0 { degrees += 360 }
-        if degrees < 135 { degrees += 360 }
+        if degrees < startAngle { degrees += 360 }
 
-        // Clamp to arc range
-        degrees = max(135, min(405, degrees))
+        degrees = max(startAngle, min(startAngle + sweepDegrees, degrees))
 
-        // Convert to progress (0-1)
-        let progress = (degrees - 135) / 270
-
-        // Convert to BPM value
-        let newValue = Int(Double(range.lowerBound) + progress * Double(range.upperBound - range.lowerBound))
+        let newProgress = (degrees - startAngle) / sweepDegrees
+        let newValue = Int(Double(range.lowerBound) + newProgress * Double(range.upperBound - range.lowerBound))
         let clampedValue = max(range.lowerBound, min(range.upperBound, newValue))
 
-        // Haptic feedback at landmarks
         if clampedValue != value {
             if landmarks.contains(clampedValue) {
-                // Strong haptic at landmarks
                 #if os(iOS)
                 let impact = UIImpactFeedbackGenerator(style: .medium)
                 impact.impactOccurred()
                 #endif
             } else if clampedValue % 5 == 0 {
-                // Light haptic every 5 BPM
                 #if os(iOS)
                 let impact = UIImpactFeedbackGenerator(style: .light)
                 impact.impactOccurred()
@@ -198,14 +290,14 @@ struct ArcSlider: View {
 
 #Preview {
     ZStack {
-        Color.black.ignoresSafeArea()
+        Color(hex: "0a0a0f").ignoresSafeArea()
 
-        VStack(spacing: 40) {
-            ArcSlider(value: .constant(120), range: 40...300)
-                .frame(width: 280, height: 280)
+        VStack(spacing: 20) {
+            ArcSlider(value: .constant(180), range: 40...300)
+                .frame(width: 260, height: 260)
 
-            Text("120 BPM")
-                .font(.system(size: 48, weight: .bold, design: .monospaced))
+            Text("180 BPM")
+                .font(.system(size: 32, weight: .bold, design: .monospaced))
                 .foregroundColor(.white)
         }
     }
