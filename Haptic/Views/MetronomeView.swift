@@ -308,9 +308,11 @@ struct MetronomeView: View {
                             : HapticColors.electricBlue
                     )
                     .offset(x: metronome.isPlaying ? 0 : 3)
+                    .contentTransition(.symbolEffect(.replace.downUp))
             }
         }
         .buttonStyle(ScaleButtonStyle())
+        .animation(.easeInOut(duration: 0.2), value: metronome.isPlaying)
     }
 
     // MARK: - Helpers
@@ -392,6 +394,7 @@ struct CyberpunkBeatCell: View {
         .buttonStyle(ScaleButtonStyle())
         .scaleEffect(isCurrent ? 1.08 : 1.0)
         .animation(.spring(response: 0.15, dampingFraction: 0.6), value: isCurrent)
+        .animation(.easeOut(duration: 0.15), value: isAccented)
         .accessibilityLabel(accessibilityLabelText)
         .accessibilityHint(accessibilityHintText)
         .accessibilityAddTraits(isAccented ? .isSelected : [])
@@ -472,6 +475,7 @@ struct ControlCard: View {
                             )
                     )
             )
+            .animation(.easeOut(duration: 0.2), value: isActive)
         }
         .buttonStyle(ScaleButtonStyle())
     }

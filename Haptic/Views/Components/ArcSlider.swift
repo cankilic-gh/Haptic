@@ -43,6 +43,7 @@ struct ArcSlider: View {
                         style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round)
                     )
                     .blur(radius: isDragging ? glowRadius : glowRadius / 2)
+                    .animation(.easeOut(duration: 0.25), value: isDragging)
 
                 // Value arc
                 arcPath(radius: radius, progress: progress)
@@ -58,9 +59,11 @@ struct ArcSlider: View {
                 // Thumb indicator
                 Circle()
                     .fill(temperatureColor)
-                    .frame(width: lineWidth + 8, height: lineWidth + 8)
-                    .shadow(color: temperatureColor, radius: isDragging ? 12 : 6)
+                    .frame(width: isDragging ? lineWidth + 12 : lineWidth + 8,
+                           height: isDragging ? lineWidth + 12 : lineWidth + 8)
+                    .shadow(color: temperatureColor, radius: isDragging ? 16 : 6)
                     .position(thumbPosition(radius: radius, center: center))
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragging)
 
                 // Evenly spaced tick marks
                 ForEach(0..<tickCount, id: \.self) { index in
