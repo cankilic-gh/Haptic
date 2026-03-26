@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// WatchMetronomeView - Main watch interface
-/// Compact layout with BPM display, beat dots, and Digital Crown control
+/// WatchMetronomeView - Retro hardware styled watch interface
+/// Compact layout matching iOS cassette deck aesthetic
 
 struct WatchMetronomeView: View {
     @StateObject private var metronome = MetronomeManager()
@@ -10,9 +10,7 @@ struct WatchMetronomeView: View {
 
     var body: some View {
         ZStack {
-            // Background with subtle pulse
-            Color.black
-                .ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
             // Beat pulse overlay
             if metronome.isPlaying && pulseIntensity > 0 {
@@ -20,47 +18,42 @@ struct WatchMetronomeView: View {
                     .fill(
                         RadialGradient(
                             colors: [
-                                HapticColors.electricBlue.opacity(pulseIntensity * 0.15),
+                                HapticColors.electricBlue.opacity(pulseIntensity * 0.12),
                                 Color.clear
                             ],
                             center: .center,
                             startRadius: 0,
-                            endRadius: 120
+                            endRadius: 100
                         )
                     )
                     .scaleEffect(1.0 + pulseIntensity * 0.1)
                     .animation(.easeOut(duration: 0.12), value: pulseIntensity)
             }
 
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 // Title
                 Text("HAPTIC")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(HapticColors.electricBlue.opacity(0.6))
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(HapticColors.electricBlue.opacity(0.5))
                     .tracking(3)
 
                 Spacer()
 
-                // BPM Display
-                bpmDisplay
-
-                // Time signature
-                Text(metronome.timeSignature.displayString)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundColor(HapticColors.secondaryText)
+                // BPM LCD display
+                bpmLCDDisplay
 
                 Spacer()
 
-                // Beat dots
-                beatDots
-                    .padding(.horizontal, 8)
+                // Beat LED bars
+                beatLEDBars
+                    .padding(.horizontal, 6)
 
                 Spacer()
 
-                // Play/Stop button
-                playButton
+                // Transport button
+                transportButton
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 2)
         }
         .focusable()
         .digitalCrownRotation(
@@ -85,108 +78,157 @@ struct WatchMetronomeView: View {
         }
     }
 
-    // MARK: - BPM Display
+    // MARK: - BPM LCD Display
 
-    private var bpmDisplay: some View {
-        VStack(spacing: 2) {
-            Text("\(metronome.bpm)")
-                .font(.system(size: 52, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
-                .contentTransition(.numericText())
-                .animation(.snappy(duration: 0.15), value: metronome.bpm)
-                .scaleEffect(metronome.isPlaying ? 1.0 + pulseIntensity * 0.03 : 1.0)
+    private var bpmLCDDisplay: some View {
+        ZStack {
+            // LCD bezel
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(hex: "08080c"))
+                .overlay(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.5), Color.clear],
+                        startPoint: .top, endPoint: .center
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                )
 
-            Text("BPM")
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundColor(HapticColors.secondaryText)
-                .tracking(4)
+            // LCD glass
+            RoundedRectangle(cornerRadius: 6)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "0a120a"), Color(hex: "080e08")],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .padding(2)
+
+            VStack(spacing: 1) {
+                // Ghost segments
+                Text("888")
+                    .font(.system(size: 42, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color(hex: "0d1a1a"))
+                    .overlay(
+                        Text("\(metronome.bpm)")
+                            .font(.system(size: 42, weight: .bold, design: .monospaced))
+                            .foregroundColor(HapticColors.electricBlue)
+                            .shadow(color: HapticColors.electricBlue.opacity(0.4), radius: 6)
+                            .contentTransition(.numericText())
+                            .animation(.snappy(duration: 0.15), value: metronome.bpm)
+                    )
+
+                HStack(spacing: 12) {
+                    Text("BPM")
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .foregroundColor(HapticColors.secondaryText)
+                        .tracking(3)
+
+                    Text(metronome.timeSignature.displayString)
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .foregroundColor(HapticColors.secondaryText)
+                }
+            }
         }
+        .frame(height: 72)
+        .padding(.horizontal, 8)
         .onTapGesture {
             metronome.tap()
         }
     }
 
-    // MARK: - Beat Dots
+    // MARK: - Beat LED Bars
 
-    private var beatDots: some View {
-        HStack(spacing: dotSpacing) {
+    private var beatLEDBars: some View {
+        HStack(spacing: barSpacing) {
             ForEach(0..<metronome.timeSignature.beatsPerBar, id: \.self) { index in
-                Circle()
-                    .fill(dotColor(for: index))
-                    .frame(width: dotSize, height: dotSize)
-                    .scaleEffect(metronome.isPlaying && metronome.currentBeat == index ? 1.4 : 1.0)
-                    .animation(.spring(response: 0.15, dampingFraction: 0.6), value: metronome.currentBeat)
+                let isCurrent = metronome.isPlaying && metronome.currentBeat == index
+                let isAccented = index < metronome.accentPattern.count && metronome.accentPattern[index]
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(barColor(isCurrent: isCurrent, isAccented: isAccented))
+                    .frame(height: 6)
                     .shadow(
-                        color: (metronome.isPlaying && metronome.currentBeat == index)
-                            ? dotColor(for: index).opacity(0.8) : .clear,
-                        radius: 4
+                        color: barGlow(isCurrent: isCurrent, isAccented: isAccented),
+                        radius: (isCurrent || isAccented) ? 4 : 0
                     )
+                    .shadow(
+                        color: barGlow(isCurrent: isCurrent, isAccented: isAccented).opacity(0.5),
+                        radius: (isCurrent || isAccented) ? 8 : 0
+                    )
+                    .animation(.easeOut(duration: 0.08), value: metronome.currentBeat)
             }
         }
     }
 
-    private var dotSize: CGFloat {
+    private var barSpacing: CGFloat {
         let beats = metronome.timeSignature.beatsPerBar
-        if beats <= 4 { return 12 }
-        if beats <= 7 { return 9 }
-        return 7
+        if beats <= 4 { return 4 }
+        if beats <= 7 { return 3 }
+        return 2
     }
 
-    private var dotSpacing: CGFloat {
-        let beats = metronome.timeSignature.beatsPerBar
-        if beats <= 4 { return 10 }
-        if beats <= 7 { return 6 }
-        return 4
+    private func barColor(isCurrent: Bool, isAccented: Bool) -> Color {
+        if isCurrent && isAccented { return .white }
+        if isCurrent { return HapticColors.electricBlue }
+        if isAccented { return HapticColors.electricBlue.opacity(0.8) }
+        return Color(hex: "1a1a1a")
     }
 
-    private func dotColor(for index: Int) -> Color {
-        if metronome.isPlaying && metronome.currentBeat == index {
-            return metronome.accentPattern[index] ? .white : HapticColors.cyanBright
-        }
-        if metronome.accentPattern[index] {
-            return HapticColors.electricBlue
-        }
-        return HapticColors.charcoal
+    private func barGlow(isCurrent: Bool, isAccented: Bool) -> Color {
+        if isCurrent && isAccented { return .white }
+        if isCurrent { return HapticColors.electricBlue }
+        if isAccented { return HapticColors.electricBlue.opacity(0.5) }
+        return .clear
     }
 
-    // MARK: - Play Button
+    // MARK: - Transport Button
 
-    private var playButton: some View {
+    private var transportButton: some View {
         Button(action: { metronome.toggle() }) {
             ZStack {
-                Circle()
+                // Button well
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(hex: "06060a"))
+                    .frame(width: 100, height: 36)
+
+                // Button face
+                RoundedRectangle(cornerRadius: 6)
                     .fill(
-                        metronome.isPlaying
-                            ? HapticColors.electricBlue
-                            : HapticColors.charcoal
+                        LinearGradient(
+                            colors: metronome.isPlaying
+                                ? [Color(hex: "141420"), Color(hex: "1a1a26")]
+                                : [Color(hex: "282832"), Color(hex: "1e1e28")],
+                            startPoint: .top, endPoint: .bottom
+                        )
                     )
-                    .frame(width: 44, height: 44)
                     .overlay(
-                        Circle()
+                        RoundedRectangle(cornerRadius: 6)
                             .stroke(
-                                metronome.isPlaying
-                                    ? HapticColors.electricBlue.opacity(0.5)
-                                    : HapticColors.electricBlue.opacity(0.3),
-                                lineWidth: 2
+                                metronome.isPlaying ? Color.black.opacity(0.4) : Color.white.opacity(0.08),
+                                lineWidth: 0.5
                             )
                     )
                     .shadow(
-                        color: metronome.isPlaying
-                            ? HapticColors.electricBlue.opacity(0.5) : .clear,
-                        radius: 8
+                        color: metronome.isPlaying ? .clear : .black.opacity(0.5),
+                        radius: metronome.isPlaying ? 0 : 3,
+                        y: metronome.isPlaying ? 0 : 2
                     )
+                    .frame(width: 96, height: 32)
+                    .offset(y: metronome.isPlaying ? 1.5 : 0)
 
+                // Icon
                 Image(systemName: metronome.isPlaying ? "stop.fill" : "play.fill")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(
-                        metronome.isPlaying ? .black : HapticColors.electricBlue
+                        metronome.isPlaying ? HapticColors.electricBlue : Color(hex: "6a6a7a")
                     )
-                    .offset(x: metronome.isPlaying ? 0 : 2)
+                    .shadow(color: metronome.isPlaying ? HapticColors.electricBlue.opacity(0.5) : .clear, radius: 6)
                     .contentTransition(.symbolEffect(.replace.downUp))
+                    .offset(y: metronome.isPlaying ? 1.5 : 0)
             }
         }
         .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.2), value: metronome.isPlaying)
+        .animation(.easeOut(duration: 0.1), value: metronome.isPlaying)
     }
 
     // MARK: - Pulse
