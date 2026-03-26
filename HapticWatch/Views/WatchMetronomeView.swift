@@ -34,13 +34,17 @@ struct WatchMetronomeView: View {
                 // Title
                 Text("HAPTIC")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(HapticColors.electricBlue.opacity(0.5))
+                    .foregroundColor(tempoColor.opacity(0.6))
                     .tracking(3)
 
                 Spacer()
 
                 // BPM LCD display
                 bpmLCDDisplay
+
+                // Tempo zone indicator
+                tempoZoneBar
+                    .padding(.horizontal, 16)
 
                 Spacer()
 
@@ -78,6 +82,50 @@ struct WatchMetronomeView: View {
         }
     }
 
+    // MARK: - Tempo Color (VU meter style)
+
+    private var tempoProgress: Double {
+        let normalized = Double(metronome.bpm - 40) / Double(300 - 40)
+        return min(max(normalized, 0), 1)
+    }
+
+    private var tempoColor: Color {
+        let t = tempoProgress
+        if t < 0.33 {
+            let local = t / 0.33
+            return Color(hue: 130.0 / 360.0, saturation: 0.85, brightness: 0.5 + local * 0.4)
+        } else if t < 0.66 {
+            let local = (t - 0.33) / 0.33
+            let hue = (60.0 - local * 20.0) / 360.0
+            return Color(hue: hue, saturation: 0.9, brightness: 0.6 + local * 0.35)
+        } else {
+            let local = (t - 0.66) / 0.34
+            let hue = (40.0 - local * 30.0) / 360.0
+            return Color(hue: hue, saturation: 0.85 - local * 0.3, brightness: 0.6 + local * 0.4)
+        }
+    }
+
+    // MARK: - Tempo Zone Bar
+
+    private var tempoZoneBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                // Track
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color(hex: "1a1a1a"))
+                    .frame(height: 3)
+
+                // Fill
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(tempoColor)
+                    .frame(width: geo.size.width * tempoProgress, height: 3)
+                    .shadow(color: tempoColor.opacity(0.6), radius: 3)
+                    .animation(.easeOut(duration: 0.15), value: metronome.bpm)
+            }
+        }
+        .frame(height: 3)
+    }
+
     // MARK: - BPM LCD Display
 
     private var bpmLCDDisplay: some View {
@@ -111,8 +159,8 @@ struct WatchMetronomeView: View {
                     .overlay(
                         Text("\(metronome.bpm)")
                             .font(.system(size: 42, weight: .bold, design: .monospaced))
-                            .foregroundColor(HapticColors.electricBlue)
-                            .shadow(color: HapticColors.electricBlue.opacity(0.4), radius: 6)
+                            .foregroundColor(tempoColor)
+                            .shadow(color: tempoColor.opacity(0.4), radius: 6)
                             .contentTransition(.numericText())
                             .animation(.snappy(duration: 0.15), value: metronome.bpm)
                     )
@@ -169,15 +217,15 @@ struct WatchMetronomeView: View {
 
     private func barColor(isCurrent: Bool, isAccented: Bool) -> Color {
         if isCurrent && isAccented { return .white }
-        if isCurrent { return HapticColors.electricBlue }
-        if isAccented { return HapticColors.electricBlue.opacity(0.8) }
+        if isCurrent { return tempoColor }
+        if isAccented { return tempoColor.opacity(0.8) }
         return Color(hex: "1a1a1a")
     }
 
     private func barGlow(isCurrent: Bool, isAccented: Bool) -> Color {
         if isCurrent && isAccented { return .white }
-        if isCurrent { return HapticColors.electricBlue }
-        if isAccented { return HapticColors.electricBlue.opacity(0.5) }
+        if isCurrent { return tempoColor }
+        if isAccented { return tempoColor.opacity(0.5) }
         return .clear
     }
 
@@ -220,9 +268,9 @@ struct WatchMetronomeView: View {
                 Image(systemName: metronome.isPlaying ? "stop.fill" : "play.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(
-                        metronome.isPlaying ? HapticColors.electricBlue : Color(hex: "6a6a7a")
+                        metronome.isPlaying ? tempoColor : Color(hex: "6a6a7a")
                     )
-                    .shadow(color: metronome.isPlaying ? HapticColors.electricBlue.opacity(0.5) : .clear, radius: 6)
+                    .shadow(color: metronome.isPlaying ? tempoColor.opacity(0.5) : .clear, radius: 6)
                     .contentTransition(.symbolEffect(.replace.downUp))
                     .offset(y: metronome.isPlaying ? 1.5 : 0)
             }
