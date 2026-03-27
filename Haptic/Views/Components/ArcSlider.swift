@@ -6,6 +6,8 @@ import SwiftUI
 struct ArcSlider: View {
     @Binding var value: Int
     let range: ClosedRange<Int>
+    var onDragStarted: (() -> Void)? = nil
+    var onDragEnded: (() -> Void)? = nil
 
     // LED tick ring configuration
     private let tickCount = 31
@@ -39,11 +41,15 @@ struct ArcSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
-                        isDragging = true
+                        if !isDragging {
+                            isDragging = true
+                            onDragStarted?()
+                        }
                         updateValue(from: gesture.location, center: center)
                     }
                     .onEnded { _ in
                         isDragging = false
+                        onDragEnded?()
                     }
             )
         }
@@ -231,8 +237,6 @@ struct ArcSlider: View {
     private func knobIndicator(center: CGPoint, knobRadius: CGFloat) -> some View {
         let angle = Angle(degrees: startAngle + (sweepDegrees * progress))
         let dotDist = knobRadius - 10
-        let x = center.x + dotDist * cos(CGFloat(angle.radians))
-        let y = center.y + dotDist * sin(CGFloat(angle.radians))
 
         return ZStack {
             // Glow
@@ -240,16 +244,18 @@ struct ArcSlider: View {
                 .fill(HapticColors.electricBlue.opacity(0.5))
                 .frame(width: 12, height: 12)
                 .blur(radius: 6)
-                .position(x: x, y: y)
+                .offset(x: dotDist)
 
             // Dot
             Circle()
                 .fill(HapticColors.electricBlue)
                 .frame(width: isDragging ? 6 : 5, height: isDragging ? 6 : 5)
                 .shadow(color: HapticColors.electricBlue, radius: 4)
-                .position(x: x, y: y)
+                .offset(x: dotDist)
         }
-        .animation(.easeOut(duration: 0.08), value: progress)
+        .rotationEffect(angle, anchor: .center)
+        .position(center)
+        .animation(isDragging ? .easeOut(duration: 0.08) : .easeInOut(duration: 0.25), value: progress)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isDragging)
     }
 
@@ -270,17 +276,15 @@ struct ArcSlider: View {
         let clampedValue = max(range.lowerBound, min(range.upperBound, newValue))
 
         if clampedValue != value {
+            #if os(iOS)
             if landmarks.contains(clampedValue) {
-                #if os(iOS)
                 let impact = UIImpactFeedbackGenerator(style: .medium)
                 impact.impactOccurred()
-                #endif
-            } else if clampedValue % 5 == 0 {
-                #if os(iOS)
+            } else {
                 let impact = UIImpactFeedbackGenerator(style: .light)
                 impact.impactOccurred()
-                #endif
             }
+            #endif
             value = clampedValue
         }
     }
