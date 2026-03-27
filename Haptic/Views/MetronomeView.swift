@@ -26,9 +26,14 @@ struct MetronomeView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 4)
 
-                // BPM + Dial (centered in available space)
+                // BPM panel (fixed after header)
+                bpmDisplayPanel
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+
+                // Knob (centered in remaining space)
                 Spacer()
-                bpmKnobSection
+                dialKnob
                     .padding(.horizontal, 20)
                 Spacer()
 
@@ -124,62 +129,57 @@ struct MetronomeView: View {
 
     // MARK: - BPM Knob (Combined Display + Control)
 
-    private var bpmKnobSection: some View {
-        VStack(spacing: 16) {
-            // BPM display in recessed panel with +/- integrated
-            recessedPanel {
-                HStack(alignment: .center) {
-                    precisionButton(delta: -1)
+    private var bpmDisplayPanel: some View {
+        recessedPanel {
+            HStack(alignment: .center) {
+                precisionButton(delta: -1)
 
-                    Spacer()
+                Spacer()
 
-                    HStack(alignment: .lastTextBaseline, spacing: 6) {
-                        // VHS 7-segment LED display
-                        ZStack {
-                            // Ghost segments (dim background digits)
-                            Text("888")
-                                .font(.custom("DSEG7Classic-Bold", size: 72))
-                                .foregroundColor(HapticColors.electricBlue.opacity(0.07))
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    ZStack {
+                        Text("888")
+                            .font(.custom("DSEG7Classic-Bold", size: 72))
+                            .foregroundColor(HapticColors.electricBlue.opacity(0.07))
 
-                            // Active digits with glow
-                            Text("\(metronome.bpm)")
-                                .font(.custom("DSEG7Classic-Bold", size: 72))
-                                .foregroundColor(HapticColors.electricBlue)
-                                .shadow(color: HapticColors.electricBlue.opacity(0.9), radius: 1)
-                                .shadow(color: HapticColors.electricBlue.opacity(0.6), radius: 6)
-                                .shadow(color: HapticColors.electricBlue.opacity(0.3), radius: 16)
-                                .contentTransition(.numericText())
-                                .animation(.snappy(duration: 0.15), value: metronome.bpm)
-                                .scaleEffect(metronome.isPlaying ? 1.0 + pulseIntensity * 0.03 : 1.0)
-                                .animation(.easeOut(duration: 0.1), value: pulseIntensity)
-                        }
-
-                        Text("BPM")
-                            .font(.system(size: 14, weight: .bold, design: .monospaced))
-                            .foregroundColor(HapticColors.electricBlue.opacity(0.5))
-                            .shadow(color: HapticColors.electricBlue.opacity(0.3), radius: 4)
+                        Text("\(metronome.bpm)")
+                            .font(.custom("DSEG7Classic-Bold", size: 72))
+                            .foregroundColor(HapticColors.electricBlue)
+                            .shadow(color: HapticColors.electricBlue.opacity(0.9), radius: 1)
+                            .shadow(color: HapticColors.electricBlue.opacity(0.6), radius: 6)
+                            .shadow(color: HapticColors.electricBlue.opacity(0.3), radius: 16)
+                            .contentTransition(.numericText(countsDown: false))
+                            .animation(.linear(duration: 0.05), value: metronome.bpm)
+                            .scaleEffect(metronome.isPlaying ? 1.0 + pulseIntensity * 0.03 : 1.0)
+                            .animation(.easeOut(duration: 0.1), value: pulseIntensity)
                     }
-                    .onTapGesture { metronome.tap() }
 
-                    Spacer()
-
-                    precisionButton(delta: 1)
+                    Text("BPM")
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .foregroundColor(HapticColors.electricBlue.opacity(0.5))
+                        .shadow(color: HapticColors.electricBlue.opacity(0.3), radius: 4)
                 }
+                .onTapGesture { metronome.tap() }
+
+                Spacer()
+
+                precisionButton(delta: 1)
             }
-
-            // Rotary knob (centered, 260x260)
-            ArcSlider(
-                value: $metronome.bpm,
-                range: 40...300,
-                onDragStarted: {
-                    metronome.isDraggingDial = true
-                },
-                onDragEnded: {
-                    metronome.commitBPMChange()
-                }
-            )
-            .frame(width: 260, height: 260)
         }
+    }
+
+    private var dialKnob: some View {
+        ArcSlider(
+            value: $metronome.bpm,
+            range: 40...300,
+            onDragStarted: {
+                metronome.isDraggingDial = true
+            },
+            onDragEnded: {
+                metronome.commitBPMChange()
+            }
+        )
+        .frame(width: 260, height: 260)
     }
 
     private func precisionButton(delta: Int) -> some View {

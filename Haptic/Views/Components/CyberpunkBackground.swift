@@ -24,13 +24,13 @@ struct CyberpunkBackground: View {
             // Circuit pattern layer
             if showCircuitPattern {
                 CircuitPatternView()
-                    .opacity(0.03 + pulseIntensity * 0.02)
+                    .opacity(0.015 + pulseIntensity * 0.01)
             }
 
             // Scan lines overlay
             if showScanLines {
                 ScanLinesView()
-                    .opacity(0.04)
+                    .opacity(0.02)
             }
 
             // Vignette effect
