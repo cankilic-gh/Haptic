@@ -40,7 +40,7 @@ final class TunerEngine: ObservableObject {
 
     // MARK: - YIN Algorithm Parameters
 
-    private let yinThreshold: Float = 0.15  // Confidence threshold
+    private let yinThreshold: Float = 0.10  // Confidence threshold (lower = more sensitive)
     private let minFrequency: Double = 27.5  // A0
     private let maxFrequency: Double = 4186.0  // C8
 
@@ -159,7 +159,7 @@ final class TunerEngine: ObservableObject {
         let amplitude = Double(rms)
 
         // Skip if signal is too weak
-        guard amplitude > 0.01 else {
+        guard amplitude > 0.002 else {
             DispatchQueue.main.async { [weak self] in
                 self?.signalStrength = amplitude
                 if self?.state != .idle {
