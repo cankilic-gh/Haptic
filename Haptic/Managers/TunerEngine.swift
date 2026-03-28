@@ -10,6 +10,7 @@ import Combine
 /// - YIN pitch detection algorithm (highly accurate for monophonic signals)
 /// - AVAudioEngine with installTap for real-time audio capture
 /// - Accelerate framework for optimized DSP operations
+/// - Input gain boost for improved mic sensitivity
 /// - Works alongside metronome (shared audio session)
 
 final class TunerEngine: ObservableObject {
@@ -35,13 +36,13 @@ final class TunerEngine: ObservableObject {
 
     private var audioEngine: AVAudioEngine?
     private var inputNode: AVAudioInputNode?
-    private let bufferSize: AVAudioFrameCount = 4096
+    private let bufferSize: AVAudioFrameCount = 2048
     private var sampleRate: Double = 44100.0
 
     // MARK: - YIN Algorithm Parameters
 
-    private let yinThreshold: Float = 0.10  // Confidence threshold (lower = more sensitive)
-    private let minFrequency: Double = 27.5  // A0
+    private let yinThreshold: Float = 0.15
+    private let minFrequency: Double = 27.5   // A0
     private let maxFrequency: Double = 4186.0  // C8
 
     // MARK: - Haptic Integration
@@ -53,7 +54,11 @@ final class TunerEngine: ObservableObject {
     // MARK: - Smoothing
 
     private var frequencyHistory: [Double] = []
-    private let smoothingWindowSize = 5
+    private let smoothingWindowSize = 3
+
+    // MARK: - Input Gain
+
+    private let targetInputGain: Float = 0.85
 
     // MARK: - Initialization
 
@@ -118,11 +123,18 @@ final class TunerEngine: ObservableObject {
     private func setupAudioSession() throws {
         let session = AVAudioSession.sharedInstance()
 
-        // Configure for recording with playback (allows metronome to work)
-        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetoothHFP])
+        // Use .default mode instead of .measurement to enable hardware AGC
+        // and signal processing that improves sensitivity for instrument detection.
+        // .measurement disables all system audio processing which hurts weak signals.
+        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
         try session.setPreferredSampleRate(44100)
-        try session.setPreferredIOBufferDuration(0.005) // Low latency
+        try session.setPreferredIOBufferDuration(0.005)
         try session.setActive(true)
+
+        // Boost input gain to improve mic sensitivity for quiet instruments
+        if session.isInputGainSettable {
+            try session.setInputGain(targetInputGain)
+        }
 
         sampleRate = session.sampleRate
     }
@@ -158,8 +170,9 @@ final class TunerEngine: ObservableObject {
 
         let amplitude = Double(rms)
 
-        // Skip if signal is too weak
-        guard amplitude > 0.002 else {
+        // Lower noise gate to pick up quieter signals.
+        // Hardware AGC + input gain boost compensate for noise floor.
+        guard amplitude > 0.0005 else {
             DispatchQueue.main.async { [weak self] in
                 self?.signalStrength = amplitude
                 if self?.state != .idle {
@@ -190,22 +203,35 @@ final class TunerEngine: ObservableObject {
     /// YIN algorithm for pitch detection
     /// Based on: "YIN, a fundamental frequency estimator for speech and music"
     /// by Alain de Cheveigne and Hideki Kawahara
+    ///
+    /// Optimized with Accelerate framework for the difference function computation.
     private func detectPitchYIN(data: UnsafePointer<Float>, frameCount: Int) -> Double? {
         let tauMax = Int(sampleRate / minFrequency)
         let tauMin = Int(sampleRate / maxFrequency)
 
         guard frameCount >= tauMax else { return nil }
 
-        // Step 1: Calculate the difference function
+        let windowLength = frameCount - tauMax
+
+        // Step 1: Calculate the difference function using Accelerate
         var diffFunction = [Float](repeating: 0, count: tauMax)
 
         for tau in tauMin..<tauMax {
-            var sum: Float = 0
-            for j in 0..<(frameCount - tauMax) {
-                let diff = data[j] - data[j + tau]
-                sum += diff * diff
-            }
-            diffFunction[tau] = sum
+            // d(tau) = sum of (x[j] - x[j+tau])^2
+            // Expand: sum(x[j]^2) + sum(x[j+tau]^2) - 2*sum(x[j]*x[j+tau])
+            // Use vDSP for the cross-correlation term
+
+            var crossCorr: Float = 0
+            vDSP_dotpr(data, 1, data.advanced(by: tau), 1, &crossCorr, vDSP_Length(windowLength))
+
+            var sumSq1: Float = 0
+            vDSP_dotpr(data, 1, data, 1, &sumSq1, vDSP_Length(windowLength))
+
+            var sumSq2: Float = 0
+            let shifted = data.advanced(by: tau)
+            vDSP_dotpr(shifted, 1, shifted, 1, &sumSq2, vDSP_Length(windowLength))
+
+            diffFunction[tau] = sumSq1 + sumSq2 - 2.0 * crossCorr
         }
 
         // Step 2: Calculate cumulative mean normalized difference function
@@ -274,7 +300,7 @@ final class TunerEngine: ObservableObject {
     private func smoothFrequency(_ frequency: Double) -> Double {
         frequencyHistory.append(frequency)
 
-        // Keep only recent readings
+        // Keep only recent readings (reduced window for faster response)
         if frequencyHistory.count > smoothingWindowSize {
             frequencyHistory.removeFirst()
         }
