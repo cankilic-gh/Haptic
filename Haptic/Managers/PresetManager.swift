@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// PresetManager - Handles persistence of MetronomePresets via UserDefaults
 /// Provides CRUD operations for user-created presets with automatic sync
