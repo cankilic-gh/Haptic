@@ -24,13 +24,13 @@ struct CyberpunkBackground: View {
             // Circuit pattern layer
             if showCircuitPattern {
                 CircuitPatternView()
-                    .opacity(0.03)
+                    .opacity(0.015 + pulseIntensity * 0.01)
             }
 
             // Scan lines overlay
             if showScanLines {
                 ScanLinesView()
-                    .opacity(0.04)
+                    .opacity(0.02)
             }
 
             // Vignette effect
@@ -70,16 +70,19 @@ struct CyberpunkBackground: View {
 
 struct ScanLinesView: View {
     var body: some View {
-        GeometryReader { geometry in
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             Canvas { context, size in
                 let lineHeight: CGFloat = 2
                 let gap: CGFloat = 3
-                var y: CGFloat = 0
+                let totalStep = lineHeight + gap
+                let elapsed = timeline.date.timeIntervalSinceReferenceDate
+                let drift = CGFloat(elapsed.truncatingRemainder(dividingBy: 12.0)) / 12.0 * totalStep
+                var y: CGFloat = -totalStep + drift
 
                 while y < size.height {
                     let rect = CGRect(x: 0, y: y, width: size.width, height: lineHeight)
                     context.fill(Path(rect), with: .color(.white))
-                    y += lineHeight + gap
+                    y += totalStep
                 }
             }
         }

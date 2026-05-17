@@ -42,6 +42,8 @@ struct TunerGauge: View {
                     )
                     .frame(width: gaugeWidth, height: gaugeHeight)
                     .blur(radius: 4)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: centOffset)
+                    .animation(.easeOut(duration: 0.3), value: accuracy)
 
                 GaugeArc(progress: centToProgress(centOffset))
                     .stroke(
@@ -49,6 +51,8 @@ struct TunerGauge: View {
                         style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
                     .frame(width: gaugeWidth, height: gaugeHeight)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: centOffset)
+                    .animation(.easeOut(duration: 0.3), value: accuracy)
             }
 
             // Center zone indicator (in-tune zone)
@@ -92,6 +96,7 @@ struct TunerGauge: View {
                 .frame(width: 20, height: 20)
                 .shadow(color: isActive ? accuracy.color.opacity(0.5) : .clear, radius: 8)
                 .offset(y: gaugeHeight / 2 - 10)
+                .animation(.easeOut(duration: 0.3), value: accuracy)
         }
         .frame(width: gaugeWidth, height: gaugeHeight + 20)
     }

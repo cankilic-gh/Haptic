@@ -33,8 +33,10 @@ struct TunerView: View {
                 // Main content
                 if hasMicPermission {
                     tunerContent
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 } else {
                     permissionRequestView
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
 
                 Spacer()
@@ -46,6 +48,7 @@ struct TunerView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .animation(.easeOut(duration: 0.3), value: hasMicPermission)
         .task {
             hasMicPermission = TunerEngine.hasMicrophonePermission
         }
@@ -231,6 +234,7 @@ struct TunerView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(signalBarColor(for: index))
                         .frame(width: 8, height: CGFloat(8 + index * 4))
+                        .animation(.easeOut(duration: 0.2).delay(Double(index) * 0.03), value: tuner.signalStrength)
                 }
             }
 
@@ -321,9 +325,11 @@ struct TunerView: View {
                             ? HapticColors.deepBlack
                             : HapticColors.electricBlue
                     )
+                    .contentTransition(.symbolEffect(.replace.downUp))
             }
         }
         .buttonStyle(ScaleButtonStyle())
+        .animation(.easeInOut(duration: 0.2), value: tuner.state.isActive)
     }
 
     // MARK: - Permission Request

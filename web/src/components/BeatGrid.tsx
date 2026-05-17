@@ -1,4 +1,6 @@
+import { useRef, useEffect } from 'react';
 import type { FC } from 'react';
+import gsap from 'gsap';
 import type { AccentPreset } from '../types';
 
 interface BeatGridProps {
@@ -85,6 +87,39 @@ interface BeatCellProps {
 }
 
 const BeatCell: FC<BeatCellProps> = ({ index, isAccented, isCurrent, onClick }) => {
+  const cellRef = useRef<HTMLButtonElement>(null);
+  const prevCurrentRef = useRef(false);
+
+  // GSAP beat pulse animation
+  useEffect(() => {
+    if (!cellRef.current) return;
+
+    if (isCurrent && !prevCurrentRef.current) {
+      // Beat hit — punch scale + glow
+      gsap.fromTo(cellRef.current, {
+        scale: 1.15,
+        boxShadow: isAccented
+          ? '0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(0,212,255,0.3)'
+          : '0 0 16px rgba(0,212,255,0.5), 0 0 30px rgba(0,212,255,0.2)',
+      }, {
+        scale: 1.08,
+        boxShadow: '0 0 12px var(--electric-blue)',
+        duration: 0.2,
+        ease: 'power2.out',
+      });
+    } else if (!isCurrent && prevCurrentRef.current) {
+      // Beat release — smooth return
+      gsap.to(cellRef.current, {
+        scale: 1,
+        boxShadow: 'none',
+        duration: 0.3,
+        ease: 'power1.inOut',
+      });
+    }
+
+    prevCurrentRef.current = isCurrent;
+  }, [isCurrent, isAccented]);
+
   const getBackgroundColor = () => {
     if (isCurrent) {
       return isAccented ? '#FFFFFF' : 'var(--cyan-bright)';
@@ -102,21 +137,20 @@ const BeatCell: FC<BeatCellProps> = ({ index, isAccented, isCurrent, onClick }) 
     return isAccented ? 'var(--primary-text)' : 'var(--secondary-text)';
   };
 
-  // Accessibility label
   const ariaLabel = `Beat ${index + 1}${isAccented ? ', accented' : ''}${isCurrent ? ', currently playing' : ''}. ${isAccented ? 'Click to remove accent' : 'Click to add accent'}`;
 
   return (
     <button
+      ref={cellRef}
       onClick={onClick}
       aria-label={ariaLabel}
       aria-pressed={isAccented}
-      className="relative rounded-lg flex items-center justify-center transition-all active:scale-95"
+      className="relative rounded-lg flex items-center justify-center active:scale-95"
       style={{
         backgroundColor: getBackgroundColor(),
         border: `1px solid ${getBorderColor()}`,
         height: '48px',
-        transform: isCurrent ? 'scale(1.08)' : 'scale(1)',
-        boxShadow: isCurrent ? '0 0 12px var(--electric-blue)' : 'none',
+        willChange: 'transform',
       }}
     >
       <span

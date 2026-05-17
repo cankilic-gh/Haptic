@@ -1,14 +1,12 @@
 import SwiftUI
 
-/// MetronomeView - Main iPhone interface with RiffForge Cyberpunk aesthetic
-/// Features: Arc slider, hexagonal BPM display, beat sequencer, pulse animations
+/// MetronomeView - Channel Strip design: rack-mounted studio gear aesthetic
+/// Features: Arc slider, 7-segment BPM display, recessed panel wells, unified button style
 
 struct MetronomeView: View {
     @StateObject private var metronome = MetronomeManager()
     @StateObject private var watchSync = WatchSyncManager.shared
 
-    @State private var showingTimeSignaturePicker = false
-    @State private var showingPresets = false
     @State private var showingSettings = false
     @State private var showingTuner = false
     @State private var pulseIntensity: Double = 0
@@ -23,36 +21,48 @@ struct MetronomeView: View {
             )
 
             VStack(spacing: 0) {
-                // Header
+                // Header (fixed at top)
                 headerView
                     .padding(.top, 8)
+                    .padding(.bottom, 4)
 
-                Spacer()
-
-                // BPM Display with Hexagonal Frame
-                bpmDisplaySection
-
-                // Arc Slider
-                arcSliderSection
-                    .padding(.horizontal, 30)
-
-                Spacer()
-
-                // Beat Sequencer
-                beatSequencerSection
+                // BPM panel (fixed after header)
+                bpmDisplayPanel
                     .padding(.horizontal, 20)
+                    .padding(.top, 8)
 
+                // Knob (centered in remaining space)
                 Spacer()
-
-                // Time Signature & Subdivisions
-                controlsRow
+                dialKnob
                     .padding(.horizontal, 20)
-
                 Spacer()
 
-                // Play Button
-                playButtonSection
-                    .padding(.bottom, 30)
+                // Bottom controls (fixed height)
+                VStack(spacing: 0) {
+                    // BEAT PATTERN
+                    sectionLabel("BEAT PATTERN")
+                    recessedPanel {
+                        beatSequencerContent
+                    }
+
+                    Spacer().frame(height: 8)
+
+                    // TIME SIGNATURE
+                    sectionLabel("TIME SIGNATURE")
+                    recessedPanel {
+                        timeSignatureContent
+                    }
+
+                    Spacer().frame(height: 8)
+
+                    // TRANSPORT
+                    sectionLabel("TRANSPORT")
+                    recessedPanel {
+                        playButtonContent
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 30)
             }
         }
         .preferredColorScheme(.dark)
@@ -117,200 +127,244 @@ struct MetronomeView: View {
         .padding(.horizontal, 20)
     }
 
-    // MARK: - BPM Display
+    // MARK: - BPM Knob (Combined Display + Control)
 
-    private var bpmDisplaySection: some View {
-        ZStack {
-            // Hexagonal frame with pulse
-            HexagonalFrame(
-                strokeColor: metronome.isPlaying ? HapticColors.electricBlue : HapticColors.darkGray,
-                glowColor: metronome.isPlaying ? HapticColors.electricBlue : .clear
-            )
-            .frame(width: 220, height: 220)
-            .scaleEffect(metronome.isPlaying ? 1.0 + pulseIntensity * 0.03 : 1.0)
-            .animation(.easeOut(duration: 0.1), value: pulseIntensity)
+    private var bpmDisplayPanel: some View {
+        recessedPanel {
+            HStack(alignment: .center) {
+                precisionButton(delta: -1)
 
-            VStack(spacing: 4) {
-                // BPM Value
-                Text("\(metronome.bpm)")
-                    .font(.system(size: 80, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.15), value: metronome.bpm)
-                    .onTapGesture {
-                        metronome.tap()
+                Spacer()
+
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    ZStack {
+                        Text("888")
+                            .font(.custom("DSEG7Classic-Bold", size: 72))
+                            .foregroundColor(HapticColors.electricBlue.opacity(0.07))
+
+                        Text("\(metronome.bpm)")
+                            .font(.custom("DSEG7Classic-Bold", size: 72))
+                            .foregroundColor(HapticColors.electricBlue)
+                            .shadow(color: HapticColors.electricBlue.opacity(0.9), radius: 1)
+                            .shadow(color: HapticColors.electricBlue.opacity(0.6), radius: 6)
+                            .shadow(color: HapticColors.electricBlue.opacity(0.3), radius: 16)
+                            .contentTransition(.numericText(countsDown: false))
+                            .animation(.linear(duration: 0.05), value: metronome.bpm)
+                            .scaleEffect(metronome.isPlaying ? 1.0 + pulseIntensity * 0.03 : 1.0)
+                            .animation(.easeOut(duration: 0.1), value: pulseIntensity)
                     }
 
-                Text("BPM")
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundColor(HapticColors.secondaryText)
-                    .tracking(6)
-
-                // Precision steppers
-                HStack(spacing: 30) {
-                    precisionButton(delta: -1)
-
-                    Text("TAP")
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
-                        .foregroundColor(HapticColors.tertiaryText)
-                        .tracking(2)
-
-                    precisionButton(delta: 1)
+                    Text("BPM")
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .foregroundColor(HapticColors.electricBlue.opacity(0.5))
+                        .shadow(color: HapticColors.electricBlue.opacity(0.3), radius: 4)
                 }
-                .padding(.top, 8)
+                .onTapGesture { metronome.tap() }
+
+                Spacer()
+
+                precisionButton(delta: 1)
             }
         }
+    }
+
+    private var dialKnob: some View {
+        ArcSlider(
+            value: $metronome.bpm,
+            range: 40...300,
+            onDragStarted: {
+                metronome.isDraggingDial = true
+            },
+            onDragEnded: {
+                metronome.commitBPMChange()
+            }
+        )
+        .frame(width: 260, height: 260)
     }
 
     private func precisionButton(delta: Int) -> some View {
         Button(action: { metronome.bpm += delta }) {
-            Text(delta > 0 ? "+" : "−")
-                .font(.system(size: 20, weight: .medium, design: .monospaced))
+            Text(delta > 0 ? "+" : "\u{2212}")
+                .font(.system(size: 18, weight: .medium, design: .monospaced))
                 .foregroundColor(HapticColors.electricBlue)
                 .frame(width: 36, height: 36)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(HapticColors.charcoal)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(HapticColors.electricBlue.opacity(0.3), lineWidth: 1)
-                        )
+                        .fill(Color(hex: "141419"))
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color(hex: "222230"), lineWidth: 1)
+                )
+                .padding(6)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(ScaleButtonStyle())
-    }
-
-    // MARK: - Arc Slider
-
-    private var arcSliderSection: some View {
-        ArcSlider(value: $metronome.bpm, range: 40...300)
-            .frame(height: 120)
+        .buttonStyle(ChannelStripButtonStyle())
     }
 
     // MARK: - Beat Sequencer
 
-    private var beatSequencerSection: some View {
-        VStack(spacing: 12) {
-            // Section label
-            HStack {
-                Rectangle()
-                    .fill(HapticColors.electricBlue.opacity(0.3))
-                    .frame(height: 1)
-
-                Text("PATTERN")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(HapticColors.secondaryText)
-                    .tracking(3)
-
-                Rectangle()
-                    .fill(HapticColors.electricBlue.opacity(0.3))
-                    .frame(height: 1)
-            }
-
-            // Beat grid
-            LazyVGrid(
-                columns: Array(
-                    repeating: GridItem(.flexible(), spacing: 8),
-                    count: min(metronome.timeSignature.beatsPerBar, 8)
-                ),
-                spacing: 8
-            ) {
-                ForEach(0..<metronome.accentPattern.count, id: \.self) { index in
-                    CyberpunkBeatCell(
-                        index: index,
-                        isAccented: metronome.accentPattern[index],
-                        isCurrent: metronome.isPlaying && metronome.currentBeat == index
-                    ) {
-                        metronome.accentPattern[index].toggle()
-                    }
-                }
-            }
-
-            // Preset patterns
-            HStack(spacing: 8) {
-                ForEach(MetronomeManager.AccentPreset.allCases, id: \.rawValue) { preset in
-                    PresetButton(
-                        title: preset.rawValue.uppercased(),
-                        isActive: false
-                    ) {
-                        metronome.applyPreset(preset)
-                    }
+    private var beatSequencerContent: some View {
+        LazyVGrid(
+            columns: Array(
+                repeating: GridItem(.flexible(), spacing: 8),
+                count: min(metronome.timeSignature.beatsPerBar, 8)
+            ),
+            spacing: 8
+        ) {
+            ForEach(0..<metronome.accentPattern.count, id: \.self) { index in
+                ChannelStripBeatCell(
+                    index: index,
+                    isAccented: metronome.accentPattern[index],
+                    isCurrent: metronome.isPlaying && metronome.currentBeat == index
+                ) {
+                    metronome.accentPattern[index].toggle()
                 }
             }
         }
     }
 
-    // MARK: - Controls Row
+    // MARK: - Time Signature Row
 
-    private var controlsRow: some View {
-        HStack(spacing: 16) {
-            // Time Signature
-            ControlCard(
-                title: "TIME SIG",
-                value: metronome.timeSignature.displayString,
-                isActive: true
-            ) {
-                showingTimeSignaturePicker = true
-            }
-            .sheet(isPresented: $showingTimeSignaturePicker) {
-                TimeSignaturePickerView(selectedTimeSignature: $metronome.timeSignature)
-            }
+    private let standardSignatures: [TimeSignature] = [.common, .waltz, .cut, .sixEight]
 
-            // Subdivisions
-            ControlCard(
-                title: "SUBDIVIDE",
-                value: metronome.subdivisionEnabled ? metronome.subdivisionType.displayName.uppercased() : "OFF",
-                isActive: metronome.subdivisionEnabled
-            ) {
-                metronome.subdivisionEnabled.toggle()
+    private var timeSignatureContent: some View {
+        HStack(spacing: 8) {
+            ForEach(standardSignatures, id: \.displayString) { ts in
+                let isSelected = ts == metronome.timeSignature
+                Button(action: { metronome.timeSignature = ts }) {
+                    Text(ts.displayString)
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundColor(isSelected ? Color(hex: "00D4FF") : Color(hex: "4A4A5A"))
+                        .shadow(
+                            color: isSelected ? Color(hex: "00D4FF").opacity(0.4) : .clear,
+                            radius: 4
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(isSelected ? Color(hex: "1C1C28") : Color(hex: "141419"))
+                                .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(
+                                    isSelected
+                                        ? Color(hex: "00D4FF").opacity(0.4)
+                                        : Color(hex: "222230"),
+                                    lineWidth: 1
+                                )
+                        )
+                }
+                .buttonStyle(ChannelStripButtonStyle())
+                .animation(.easeOut(duration: 0.1), value: isSelected)
             }
         }
     }
 
     // MARK: - Play Button
 
-    private var playButtonSection: some View {
+    private var playButtonContent: some View {
         Button(action: { metronome.toggle() }) {
-            ZStack {
-                // Outer glow ring
-                Circle()
-                    .stroke(
-                        metronome.isPlaying ? HapticColors.electricBlue : HapticColors.darkGray,
-                        lineWidth: 3
-                    )
-                    .frame(width: 90, height: 90)
-                    .scaleEffect(metronome.isPlaying ? 1.0 + pulseIntensity * 0.1 : 1.0)
-                    .animation(.easeOut(duration: 0.1), value: pulseIntensity)
-                    .neonGlow(
-                        color: metronome.isPlaying ? HapticColors.electricBlue : .clear,
-                        radius: metronome.isPlaying ? 12 : 0
-                    )
-
-                // Inner button
-                Circle()
-                    .fill(
-                        metronome.isPlaying
-                            ? HapticColors.electricBlue
-                            : HapticColors.charcoal
-                    )
-                    .frame(width: 70, height: 70)
-                    .overlay(
-                        Circle()
-                            .stroke(HapticColors.electricBlue.opacity(0.5), lineWidth: 1)
-                    )
-
-                // Icon
+            HStack(spacing: 10) {
                 Image(systemName: metronome.isPlaying ? "stop.fill" : "play.fill")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundColor(
-                        metronome.isPlaying
-                            ? HapticColors.deepBlack
-                            : HapticColors.electricBlue
-                    )
-                    .offset(x: metronome.isPlaying ? 0 : 3)
+                    .font(.system(size: 18, weight: .semibold))
+                    .contentTransition(.symbolEffect(.replace.downUp))
+
+                Text(metronome.isPlaying ? "STOP" : "PLAY")
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .tracking(4)
             }
+            .foregroundColor(
+                metronome.isPlaying
+                    ? Color(hex: "00D4FF")
+                    : Color(hex: "4A4A5A")
+            )
+            .shadow(
+                color: metronome.isPlaying ? Color(hex: "00D4FF").opacity(0.5) : .clear,
+                radius: 8
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(hex: "141419"))
+                    if metronome.isPlaying {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color(hex: "00F0FF").opacity(0.08))
+                    }
+                }
+                .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(
+                        metronome.isPlaying
+                            ? Color(hex: "00D4FF").opacity(0.5)
+                            : Color(hex: "222230"),
+                        lineWidth: 1
+                    )
+            )
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(ChannelStripButtonStyle())
+        .animation(.easeOut(duration: 0.08), value: metronome.isPlaying)
+    }
+
+    // MARK: - Recessed Panel
+
+    private func recessedPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(hex: "06060A"))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.04), lineWidth: 0.5)
+            )
+            .overlay(
+                // Inner shadow: top highlight + bottom shadow
+                ZStack {
+                    // Top highlight
+                    VStack {
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.04), Color.clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 6)
+                        Spacer()
+                    }
+                    // Bottom shadow
+                    VStack {
+                        Spacer()
+                        LinearGradient(
+                            colors: [Color.clear, Color.black.opacity(0.3)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 6)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            )
+    }
+
+    // MARK: - Section Label
+
+    private func sectionLabel(_ text: String) -> some View {
+        HStack {
+            Text(text)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundColor(Color(hex: "33334A"))
+                .tracking(3)
+            Spacer()
+        }
+        .padding(.bottom, 4)
     }
 
     // MARK: - Helpers
@@ -335,23 +389,18 @@ struct MetronomeView: View {
     }
 }
 
-// MARK: - Supporting Components
+// MARK: - Channel Strip Beat Cell
 
-struct CyberpunkBeatCell: View {
+struct ChannelStripBeatCell: View {
     let index: Int
     let isAccented: Bool
     let isCurrent: Bool
     let onTap: () -> Void
 
-    // Accessibility label describing the beat state
     private var accessibilityLabelText: String {
         var label = "Beat \(index + 1)"
-        if isAccented {
-            label += ", accented"
-        }
-        if isCurrent {
-            label += ", currently playing"
-        }
+        if isAccented { label += ", accented" }
+        if isCurrent { label += ", currently playing" }
         return label
     }
 
@@ -361,119 +410,72 @@ struct CyberpunkBeatCell: View {
 
     var body: some View {
         Button(action: onTap) {
-            ZStack {
-                // Background
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(backgroundColor)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(borderColor, lineWidth: 1)
-                    )
-                    .frame(height: 60)
+            VStack(spacing: 4) {
+                // LED bar above button
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(ledBarColor)
+                    .frame(height: 3)
+                    .shadow(color: ledBarGlow, radius: isCurrent || isAccented ? 4 : 0)
+                    .shadow(color: ledBarGlow.opacity(0.5), radius: isCurrent || isAccented ? 8 : 0)
+                    .padding(.horizontal, 4)
 
-                // Beat number
-                Text("\(index + 1)")
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundColor(textColor)
+                // Unified button
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isAccented ? Color(hex: "1C1C28") : Color(hex: "141419"))
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
 
-                // Accent indicator
-                if isAccented && !isCurrent {
-                    VStack {
-                        Circle()
-                            .fill(HapticColors.electricBlue)
-                            .frame(width: 6, height: 6)
-                            .neonGlow(color: HapticColors.electricBlue, radius: 4)
-                        Spacer()
-                    }
-                    .padding(.top, 6)
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(
+                            isAccented
+                                ? Color(hex: "00D4FF").opacity(0.4)
+                                : Color(hex: "222230"),
+                            lineWidth: 1
+                        )
+
+                    Text("\(index + 1)")
+                        .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                        .foregroundColor(isAccented ? Color(hex: "00D4FF") : Color(hex: "4A4A5A"))
+                        .shadow(
+                            color: isAccented ? Color(hex: "00D4FF").opacity(0.4) : .clear,
+                            radius: 4
+                        )
                 }
+                .frame(height: 48)
+                .offset(y: isAccented ? 1 : 0)
             }
         }
-        .buttonStyle(ScaleButtonStyle())
-        .scaleEffect(isCurrent ? 1.08 : 1.0)
-        .animation(.spring(response: 0.15, dampingFraction: 0.6), value: isCurrent)
+        .buttonStyle(ChannelStripButtonStyle())
+        .animation(.easeOut(duration: 0.08), value: isCurrent)
+        .animation(.easeOut(duration: 0.1), value: isAccented)
         .accessibilityLabel(accessibilityLabelText)
         .accessibilityHint(accessibilityHintText)
         .accessibilityAddTraits(isAccented ? .isSelected : [])
     }
 
-    private var backgroundColor: Color {
-        if isCurrent {
-            // Monochromatic: accented current = white, normal current = bright cyan
-            return isAccented ? HapticColors.currentBeatAccent : HapticColors.currentBeat
-        }
-        return HapticColors.charcoal
+    private var ledBarColor: Color {
+        if isCurrent && isAccented { return .white }
+        if isCurrent { return HapticColors.electricBlue }
+        if isAccented { return HapticColors.electricBlue.opacity(0.8) }
+        return Color(hex: "1a1a1a")
     }
 
-    private var borderColor: Color {
-        if isCurrent {
-            return .clear
-        }
-        return isAccented ? HapticColors.electricBlue.opacity(0.5) : HapticColors.darkGray
-    }
-
-    private var textColor: Color {
-        if isCurrent {
-            return HapticColors.deepBlack
-        }
-        return isAccented ? HapticColors.primaryText : HapticColors.secondaryText
+    private var ledBarGlow: Color {
+        if isCurrent && isAccented { return .white }
+        if isCurrent { return HapticColors.electricBlue }
+        if isAccented { return HapticColors.electricBlue.opacity(0.5) }
+        return .clear
     }
 }
 
-struct PresetButton: View {
-    let title: String
-    let isActive: Bool
-    let action: () -> Void
+// MARK: - Button Styles
 
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundColor(isActive ? HapticColors.deepBlack : HapticColors.secondaryText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(isActive ? HapticColors.electricBlue : HapticColors.charcoal)
-                )
-        }
-        .buttonStyle(ScaleButtonStyle())
-    }
-}
-
-struct ControlCard: View {
-    let title: String
-    let value: String
-    let isActive: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Text(value)
-                    .font(.system(size: 22, weight: .bold, design: .monospaced))
-                    .foregroundColor(isActive ? HapticColors.electricBlue : HapticColors.tertiaryText)
-
-                Text(title)
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundColor(HapticColors.secondaryText)
-                    .tracking(2)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(HapticColors.charcoal)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                isActive ? HapticColors.electricBlue.opacity(0.3) : HapticColors.darkGray,
-                                lineWidth: 1
-                            )
-                    )
-            )
-        }
-        .buttonStyle(ScaleButtonStyle())
+struct ChannelStripButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .offset(y: configuration.isPressed ? 1 : 0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeOut(duration: 0.06), value: configuration.isPressed)
     }
 }
 
@@ -485,7 +487,7 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Time Signature Picker
+// MARK: - Time Signature Picker (kept for settings access)
 
 struct TimeSignaturePickerView: View {
     @Binding var selectedTimeSignature: TimeSignature
@@ -582,6 +584,67 @@ struct TimeSignaturePickerView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Shared Components (used by TunerView etc.)
+
+struct ControlCard: View {
+    let title: String
+    let value: String
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "2a2a34"), Color(hex: "1e1e28")],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(0.12),
+                                            Color.white.opacity(0.03),
+                                            Color.clear
+                                        ],
+                                        startPoint: .top, endPoint: .bottom
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                        .shadow(color: Color.black.opacity(0.6), radius: 3, x: 0, y: 3)
+
+                    Text(value)
+                        .font(.system(size: 22, weight: .bold, design: .monospaced))
+                        .foregroundColor(isActive ? HapticColors.electricBlue : Color(hex: "555566"))
+                        .shadow(color: isActive ? HapticColors.electricBlue.opacity(0.4) : .clear, radius: 6)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+
+                Text(title)
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundColor(HapticColors.secondaryText)
+                    .tracking(2)
+            }
+        }
+        .buttonStyle(KeyCapButtonStyle())
+    }
+}
+
+struct KeyCapButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .offset(y: configuration.isPressed ? 2 : 0)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }
 

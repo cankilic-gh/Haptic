@@ -1,1 +1,15 @@
+# Xcode
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
 .DS_Store
+*.swp
+*~
+*.xcuserstate
+xcuserdata/

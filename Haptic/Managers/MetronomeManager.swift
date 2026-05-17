@@ -18,6 +18,8 @@ final class MetronomeManager: ObservableObject {
     @Published private(set) var currentSubdivision: Int = 0
     @Published private(set) var currentBar: Int = 0
 
+    var isDraggingDial: Bool = false
+
     @Published var bpm: Int = 120 {
         didSet {
             // Clamp to valid range without causing infinite loop
@@ -26,9 +28,16 @@ final class MetronomeManager: ObservableObject {
                 bpm = clampedValue
                 return // Exit to avoid double processing
             }
-            if isPlaying {
+            if isPlaying && !isDraggingDial {
                 restartTimer()
             }
+        }
+    }
+
+    func commitBPMChange() {
+        isDraggingDial = false
+        if isPlaying {
+            restartTimer()
         }
     }
 
@@ -114,7 +123,9 @@ final class MetronomeManager: ObservableObject {
         do {
             try hapticEngine.start()
         } catch {
+            #if DEBUG
             print("MetronomeManager: Failed to start haptic engine: \(error)")
+            #endif
         }
 
         // Reset state

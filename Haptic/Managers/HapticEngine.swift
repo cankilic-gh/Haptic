@@ -1,45 +1,49 @@
 import Foundation
 import Combine
+#if canImport(CoreHaptics)
 import CoreHaptics
+#endif
 import AVFoundation
+#if os(watchOS)
+import WatchKit
+#endif
 
-/// HapticEngine - CoreHaptics Implementation for Sharp, Percussive Metronome Taps
-/// Designed for professional musicians who need precise tactile feedback.
-///
-/// Key Features:
-/// - Transient haptic patterns (sharp, percussive feel)
-/// - Different intensities for accented vs normal beats
-/// - Subdivision support for complex patterns
-/// - Automatic engine recovery on interruption
+/// HapticEngine - Cross-platform haptic feedback for metronome beats
+/// iOS: CoreHaptics for precise transient patterns
+/// watchOS: WKInterfaceDevice haptics as fallback
 
 final class HapticEngine: ObservableObject {
 
     // MARK: - Published State
     @Published private(set) var isAvailable: Bool = false
     @Published private(set) var isRunning: Bool = false
+    @Published var soundEnabled: Bool = true
 
-    // MARK: - CoreHaptics
+    #if canImport(CoreHaptics)
+    // MARK: - CoreHaptics (iOS)
     private var engine: CHHapticEngine?
     private var accentedBeatPlayer: CHHapticPatternPlayer?
     private var normalBeatPlayer: CHHapticPatternPlayer?
     private var subdivisionPlayer: CHHapticPatternPlayer?
     private var ghostNotePlayer: CHHapticPatternPlayer?
+    #endif
+
+    // MARK: - Audio Click Engine
+    private let audioClick = AudioClickEngine()
 
     // MARK: - Haptic Pattern Definitions
 
-    /// Beat intensity levels for different haptic weights
     enum BeatIntensity: Float {
-        case accent = 1.0        // Full power - downbeat/accent
-        case normal = 0.7        // Standard beat
-        case subdivision = 0.4   // Eighth notes, sixteenths
-        case ghost = 0.2         // Ghost notes, very subtle
+        case accent = 1.0
+        case normal = 0.7
+        case subdivision = 0.4
+        case ghost = 0.2
     }
 
-    /// Sharpness levels (higher = more "click", lower = more "thud")
     enum BeatSharpness: Float {
-        case sharp = 1.0         // Crisp, percussive click
-        case medium = 0.7        // Balanced feel
-        case soft = 0.4          // Rounded, softer tap
+        case sharp = 1.0
+        case medium = 0.7
+        case soft = 0.4
     }
 
     // MARK: - Initialization
@@ -51,6 +55,7 @@ final class HapticEngine: ObservableObject {
     // MARK: - Engine Setup
 
     private func setupEngine() {
+        #if canImport(CoreHaptics)
         guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
             isAvailable = false
             return
@@ -62,68 +67,63 @@ final class HapticEngine: ObservableObject {
             try preparePatternPlayers()
             isAvailable = true
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to create engine: \(error)")
+            #endif
             isAvailable = false
         }
+        #elseif os(watchOS)
+        isAvailable = true
+        #else
+        isAvailable = false
+        #endif
     }
 
+    #if canImport(CoreHaptics)
     private func configureEngine() {
         guard let engine = engine else { return }
 
-        // Handle engine reset (e.g., after app returns to foreground)
         engine.resetHandler = { [weak self] in
             do {
                 try self?.engine?.start()
                 try self?.preparePatternPlayers()
             } catch {
+                #if DEBUG
                 print("HapticEngine: Failed to restart: \(error)")
+                #endif
             }
         }
 
-        // Handle when engine stops (e.g., audio session interruption)
         engine.stoppedHandler = { [weak self] reason in
+            #if DEBUG
             print("HapticEngine stopped: \(reason.rawValue)")
+            #endif
             self?.isRunning = false
         }
 
-        // Configure for background audio (allows haptics during background playback)
         engine.isAutoShutdownEnabled = false
         engine.playsHapticsOnly = true
     }
 
     // MARK: - Pattern Creation
 
-    /// Create a transient haptic pattern with specified intensity and sharpness
-    /// Transient = single, sharp tap (as opposed to continuous vibration)
     private func createTransientPattern(
         intensity: BeatIntensity,
         sharpness: BeatSharpness
     ) throws -> CHHapticPattern {
-
-        // Transient event - the key to sharp, percussive feel
         let transientEvent = CHHapticEvent(
             eventType: .hapticTransient,
             parameters: [
-                CHHapticEventParameter(
-                    parameterID: .hapticIntensity,
-                    value: intensity.rawValue
-                ),
-                CHHapticEventParameter(
-                    parameterID: .hapticSharpness,
-                    value: sharpness.rawValue
-                )
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity.rawValue),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: sharpness.rawValue)
             ],
             relativeTime: 0,
-            duration: 0.05 // Very short for percussive feel
+            duration: 0.05
         )
-
         return try CHHapticPattern(events: [transientEvent], parameters: [])
     }
 
-    /// Create enhanced accent pattern with double-tap feel
-    /// Gives extra emphasis to downbeats
     private func createAccentPattern() throws -> CHHapticPattern {
-        // Primary strong tap
         let primaryTap = CHHapticEvent(
             eventType: .hapticTransient,
             parameters: [
@@ -134,114 +134,107 @@ final class HapticEngine: ObservableObject {
             duration: 0.05
         )
 
-        // Subtle reinforcement tap (creates "thicker" feel)
         let reinforcementTap = CHHapticEvent(
             eventType: .hapticTransient,
             parameters: [
                 CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.4),
                 CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.6)
             ],
-            relativeTime: 0.025, // 25ms after primary
+            relativeTime: 0.025,
             duration: 0.03
         )
 
         return try CHHapticPattern(events: [primaryTap, reinforcementTap], parameters: [])
     }
 
-    // MARK: - Player Preparation
-
     private func preparePatternPlayers() throws {
         guard let engine = engine else { return }
 
-        // Accented beat - strongest, sharpest, with reinforcement
-        let accentPattern = try createAccentPattern()
-        accentedBeatPlayer = try engine.makePlayer(with: accentPattern)
-
-        // Normal beat - strong but not emphasized
-        let normalPattern = try createTransientPattern(
-            intensity: .normal,
-            sharpness: .sharp
-        )
-        normalBeatPlayer = try engine.makePlayer(with: normalPattern)
-
-        // Subdivision - lighter tap for eighth/sixteenth notes
-        let subdivisionPattern = try createTransientPattern(
-            intensity: .subdivision,
-            sharpness: .medium
-        )
-        subdivisionPlayer = try engine.makePlayer(with: subdivisionPattern)
-
-        // Ghost note - very subtle, almost felt rather than heard
-        let ghostPattern = try createTransientPattern(
-            intensity: .ghost,
-            sharpness: .soft
-        )
-        ghostNotePlayer = try engine.makePlayer(with: ghostPattern)
+        accentedBeatPlayer = try engine.makePlayer(with: createAccentPattern())
+        normalBeatPlayer = try engine.makePlayer(with: createTransientPattern(intensity: .normal, sharpness: .sharp))
+        subdivisionPlayer = try engine.makePlayer(with: createTransientPattern(intensity: .subdivision, sharpness: .medium))
+        ghostNotePlayer = try engine.makePlayer(with: createTransientPattern(intensity: .ghost, sharpness: .soft))
     }
+    #endif
 
     // MARK: - Engine Control
 
     func start() throws {
-        guard let engine = engine else {
-            throw HapticError.engineNotAvailable
+        if soundEnabled {
+            audioClick.start()
         }
 
-        try engine.start()
+        #if canImport(CoreHaptics)
+        if let engine = engine {
+            try engine.start()
+        }
+        #endif
+
         isRunning = true
     }
 
     func stop() {
+        #if canImport(CoreHaptics)
         engine?.stop(completionHandler: nil)
+        #endif
+        audioClick.stop()
         isRunning = false
     }
 
     // MARK: - Beat Triggering
 
-    /// Play an accented beat (downbeats, emphasized beats)
     func playAccentedBeat() {
         guard isRunning else { return }
+        if soundEnabled { audioClick.playAccent() }
 
+        #if canImport(CoreHaptics)
         do {
             try accentedBeatPlayer?.start(atTime: CHHapticTimeImmediate)
-        } catch {
-            print("HapticEngine: Failed to play accented beat: \(error)")
-        }
+        } catch {}
+        #elseif os(watchOS)
+        WKInterfaceDevice.current().play(.notification)
+        #endif
     }
 
-    /// Play a normal beat
     func playNormalBeat() {
         guard isRunning else { return }
+        if soundEnabled { audioClick.playNormal() }
 
+        #if canImport(CoreHaptics)
         do {
             try normalBeatPlayer?.start(atTime: CHHapticTimeImmediate)
-        } catch {
-            print("HapticEngine: Failed to play normal beat: \(error)")
-        }
+        } catch {}
+        #elseif os(watchOS)
+        WKInterfaceDevice.current().play(.click)
+        #endif
     }
 
-    /// Play a subdivision beat (eighth notes, sixteenths)
     func playSubdivision() {
         guard isRunning else { return }
+        if soundEnabled { audioClick.playSubdivision() }
 
+        #if canImport(CoreHaptics)
         do {
             try subdivisionPlayer?.start(atTime: CHHapticTimeImmediate)
-        } catch {
-            print("HapticEngine: Failed to play subdivision: \(error)")
-        }
+        } catch {}
+        #elseif os(watchOS)
+        WKInterfaceDevice.current().play(.click)
+        #endif
     }
 
-    /// Play a ghost note (very subtle)
     func playGhostNote() {
         guard isRunning else { return }
+        if soundEnabled { audioClick.playGhost() }
 
+        #if canImport(CoreHaptics)
         do {
             try ghostNotePlayer?.start(atTime: CHHapticTimeImmediate)
-        } catch {
-            print("HapticEngine: Failed to play ghost note: \(error)")
-        }
+        } catch {}
+        #elseif os(watchOS)
+        WKInterfaceDevice.current().play(.click)
+        #endif
     }
 
-    /// Play beat based on accent pattern value
     func playBeat(isAccented: Bool, isSubdivision: Bool = false) {
         if isSubdivision {
             playSubdivision()
@@ -254,7 +247,7 @@ final class HapticEngine: ObservableObject {
 
     // MARK: - Advanced Patterns
 
-    /// Create and play a custom pattern for complex rhythms
+    #if canImport(CoreHaptics)
     func playCustomPattern(events: [HapticBeatEvent]) {
         guard isRunning, let engine = engine else { return }
 
@@ -279,7 +272,7 @@ final class HapticEngine: ObservableObject {
                     intensity = BeatIntensity.ghost.rawValue
                     sharpness = BeatSharpness.soft.rawValue
                 case .rest:
-                    continue // No haptic for rests
+                    continue
                 }
 
                 let hapticEvent = CHHapticEvent(
@@ -291,18 +284,19 @@ final class HapticEngine: ObservableObject {
                     relativeTime: event.relativeTime,
                     duration: 0.05
                 )
-
                 hapticEvents.append(hapticEvent)
             }
 
             let pattern = try CHHapticPattern(events: hapticEvents, parameters: [])
             let player = try engine.makePlayer(with: pattern)
             try player.start(atTime: CHHapticTimeImmediate)
-
         } catch {
+            #if DEBUG
             print("HapticEngine: Failed to play custom pattern: \(error)")
+            #endif
         }
     }
+    #endif
 
     // MARK: - Error Types
 
@@ -313,12 +307,9 @@ final class HapticEngine: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .engineNotAvailable:
-                return "Haptic engine is not available"
-            case .patternCreationFailed:
-                return "Failed to create haptic pattern"
-            case .playerNotReady:
-                return "Haptic player is not ready"
+            case .engineNotAvailable: return "Haptic engine is not available"
+            case .patternCreationFailed: return "Failed to create haptic pattern"
+            case .playerNotReady: return "Haptic player is not ready"
             }
         }
     }
@@ -326,7 +317,6 @@ final class HapticEngine: ObservableObject {
 
 // MARK: - Supporting Types
 
-/// Represents a single beat event in a custom haptic pattern
 struct HapticBeatEvent {
     let type: BeatType
     let relativeTime: TimeInterval
@@ -339,22 +329,3 @@ struct HapticBeatEvent {
         case rest
     }
 }
-
-// MARK: - Watch-Specific Implementation
-
-#if os(watchOS)
-import WatchKit
-
-extension HapticEngine {
-
-    /// Fallback to WatchKit haptics when CoreHaptics isn't available
-    /// (older Apple Watch models)
-    func playWatchKitFallback(isAccented: Bool) {
-        if isAccented {
-            WKInterfaceDevice.current().play(.notification)
-        } else {
-            WKInterfaceDevice.current().play(.click)
-        }
-    }
-}
-#endif
