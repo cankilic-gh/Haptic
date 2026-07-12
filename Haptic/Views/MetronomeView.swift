@@ -11,6 +11,10 @@ struct MetronomeView: View {
     @State private var showingTuner = false
     @State private var pulseIntensity: Double = 0
 
+    /// Compact vertical height == landscape on iPhone. Drives the two-column layout.
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
     var body: some View {
         ZStack {
             // Cyberpunk Background
@@ -20,49 +24,10 @@ struct MetronomeView: View {
                 pulseIntensity: metronome.isPlaying ? pulseIntensity : 0
             )
 
-            VStack(spacing: 0) {
-                // Header (fixed at top)
-                headerView
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-
-                // BPM panel (fixed after header)
-                bpmDisplayPanel
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-
-                // Knob (centered in remaining space)
-                Spacer()
-                dialKnob
-                    .padding(.horizontal, 20)
-                Spacer()
-
-                // Bottom controls (fixed height)
-                VStack(spacing: 0) {
-                    // BEAT PATTERN
-                    sectionLabel("BEAT PATTERN")
-                    recessedPanel {
-                        beatSequencerContent
-                    }
-
-                    Spacer().frame(height: 8)
-
-                    // TIME SIGNATURE
-                    sectionLabel("TIME SIGNATURE")
-                    recessedPanel {
-                        timeSignatureContent
-                    }
-
-                    Spacer().frame(height: 8)
-
-                    // TRANSPORT
-                    sectionLabel("TRANSPORT")
-                    recessedPanel {
-                        playButtonContent
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
+            if isLandscape {
+                landscapeLayout
+            } else {
+                portraitLayout
             }
         }
         .preferredColorScheme(.dark)
@@ -79,6 +44,89 @@ struct MetronomeView: View {
         }
         .fullScreenCover(isPresented: $showingTuner) {
             TunerView()
+        }
+    }
+
+    // MARK: - Portrait Layout
+
+    private var portraitLayout: some View {
+        VStack(spacing: 0) {
+            // Header (fixed at top)
+            headerView
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+            // BPM panel (fixed after header)
+            bpmDisplayPanel
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+            // Knob (centered in remaining space)
+            Spacer()
+            dialKnob(size: 260)
+                .padding(.horizontal, 20)
+            Spacer()
+
+            // Bottom controls (fixed height)
+            bottomControls
+                .padding(.horizontal, 20)
+                .padding(.bottom, 30)
+        }
+    }
+
+    // MARK: - Landscape Layout (two columns to fit the short height)
+
+    private var landscapeLayout: some View {
+        VStack(spacing: 0) {
+            headerView
+                .padding(.top, 6)
+                .padding(.bottom, 2)
+
+            HStack(alignment: .top, spacing: 16) {
+                // Left column: BPM display + dial
+                VStack(spacing: 10) {
+                    bpmDisplayPanel
+                    Spacer(minLength: 0)
+                    dialKnob(size: 190)
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity)
+
+                // Right column: sequencer + time signature + transport
+                bottomControls
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+            .padding(.bottom, 14)
+        }
+    }
+
+    // MARK: - Bottom Controls (shared by both layouts)
+
+    private var bottomControls: some View {
+        VStack(spacing: 0) {
+            // BEAT PATTERN
+            sectionLabel("BEAT PATTERN")
+            recessedPanel {
+                beatSequencerContent
+            }
+
+            Spacer().frame(height: 8)
+
+            // TIME SIGNATURE
+            sectionLabel("TIME SIGNATURE")
+            recessedPanel {
+                timeSignatureContent
+            }
+
+            Spacer().frame(height: 8)
+
+            // TRANSPORT
+            sectionLabel("TRANSPORT")
+            recessedPanel {
+                playButtonContent
+            }
         }
     }
 
@@ -168,7 +216,7 @@ struct MetronomeView: View {
         }
     }
 
-    private var dialKnob: some View {
+    private func dialKnob(size: CGFloat) -> some View {
         ArcSlider(
             value: $metronome.bpm,
             range: 40...300,
@@ -179,7 +227,7 @@ struct MetronomeView: View {
                 metronome.commitBPMChange()
             }
         )
-        .frame(width: 260, height: 260)
+        .frame(width: size, height: size)
     }
 
     private func precisionButton(delta: Int) -> some View {

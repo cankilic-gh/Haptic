@@ -14,6 +14,10 @@ struct TunerView: View {
     @State private var hasMicPermission = false
     @State private var showingPermissionAlert = false
 
+    /// Compact vertical height == landscape on iPhone. Drives the two-column layout.
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    private var isLandscape: Bool { verticalSizeClass == .compact }
+
     var body: some View {
         ZStack {
             // Cyberpunk Background with pulse based on accuracy
@@ -23,28 +27,10 @@ struct TunerView: View {
                 pulseIntensity: tuner.state == .inTune ? 0.5 : 0
             )
 
-            VStack(spacing: 0) {
-                // Header
-                headerView
-                    .padding(.top, 8)
-
-                Spacer()
-
-                // Main content
-                if hasMicPermission {
-                    tunerContent
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                } else {
-                    permissionRequestView
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                }
-
-                Spacer()
-
-                // Controls
-                controlsSection
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 30)
+            if isLandscape {
+                landscapeLayout
+            } else {
+                portraitLayout
             }
         }
         .preferredColorScheme(.dark)
@@ -67,6 +53,75 @@ struct TunerView: View {
         }
         .sheet(isPresented: $showingReferencePitchPicker) {
             ReferencePitchPickerView(referencePitch: $tuner.referencePitch)
+        }
+    }
+
+    // MARK: - Portrait Layout
+
+    private var portraitLayout: some View {
+        VStack(spacing: 0) {
+            // Header
+            headerView
+                .padding(.top, 8)
+
+            Spacer()
+
+            // Main content
+            if hasMicPermission {
+                tunerContent
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            } else {
+                permissionRequestView
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+
+            Spacer()
+
+            // Controls
+            controlsSection
+                .padding(.horizontal, 20)
+                .padding(.bottom, 30)
+        }
+    }
+
+    // MARK: - Landscape Layout (two columns to fit the short height)
+
+    private var landscapeLayout: some View {
+        VStack(spacing: 0) {
+            headerView
+                .padding(.top, 6)
+
+            if hasMicPermission {
+                HStack(alignment: .center, spacing: 20) {
+                    // Left column: note display + gauge
+                    VStack(spacing: 12) {
+                        noteDisplaySection(frameSize: 150)
+                        TunerGauge(
+                            centOffset: tuner.centOffset,
+                            accuracy: tuner.accuracy,
+                            isActive: tuner.state.isActive && tuner.detectedNote != nil
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // Right column: frequency + signal + controls
+                    VStack(spacing: 14) {
+                        frequencySection
+                        signalStrengthIndicator
+                        controlsSection
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            } else {
+                Spacer()
+                permissionRequestView
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                Spacer()
+            }
         }
     }
 
@@ -114,7 +169,7 @@ struct TunerView: View {
     private var tunerContent: some View {
         VStack(spacing: 24) {
             // Note Display with hexagonal frame
-            noteDisplaySection
+            noteDisplaySection(frameSize: 200)
 
             // Gauge
             TunerGauge(
@@ -134,14 +189,14 @@ struct TunerView: View {
 
     // MARK: - Note Display
 
-    private var noteDisplaySection: some View {
+    private func noteDisplaySection(frameSize: CGFloat) -> some View {
         ZStack {
             // Hexagonal frame with accuracy-based glow
             HexagonalFrame(
                 strokeColor: frameColor,
                 glowColor: tuner.state == .inTune ? HapticColors.cyanBright : frameColor
             )
-            .frame(width: 200, height: 200)
+            .frame(width: frameSize, height: frameSize)
             .scaleEffect(tuner.state == .inTune ? 1.05 : 1.0)
             .animation(.easeOut(duration: 0.2), value: tuner.state == .inTune)
 
