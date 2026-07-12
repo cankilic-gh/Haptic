@@ -4,7 +4,6 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { IPhoneSimulator } from './IPhoneSimulator';
-import { MetronomeApp } from './MetronomeApp';
 import { AppleWatchMockup } from './AppleWatchMockup';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -142,9 +141,7 @@ export const LandingPage: FC = () => {
             {/* iPhone Simulator - Large card */}
             <GlassCard className="md:col-span-2 lg:row-span-2 flex items-center justify-center p-2">
               <div className="scale-[0.9] origin-center">
-                <IPhoneSimulator>
-                  <MetronomeApp />
-                </IPhoneSimulator>
+                <IPhoneSimulator screenshotSrc="/app-metronome.jpg" />
               </div>
             </GlassCard>
 

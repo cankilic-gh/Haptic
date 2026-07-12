@@ -1,10 +1,12 @@
 import type { FC, ReactNode } from 'react';
 
 interface IPhoneSimulatorProps {
-  children: ReactNode;
+  children?: ReactNode;
+  /** When set, a real app screenshot fills the screen instead of `children`. */
+  screenshotSrc?: string;
 }
 
-export const IPhoneSimulator: FC<IPhoneSimulatorProps> = ({ children }) => {
+export const IPhoneSimulator: FC<IPhoneSimulatorProps> = ({ children, screenshotSrc }) => {
   return (
     <div className="flex flex-col items-center">
       {/* Phone frame */}
@@ -28,7 +30,8 @@ export const IPhoneSimulator: FC<IPhoneSimulatorProps> = ({ children }) => {
             backgroundColor: '#000',
           }}
         >
-          {/* Dynamic Island / Notch */}
+          {/* Dynamic Island / Notch — only when there's no real screenshot (it already has one) */}
+          {!screenshotSrc && (
           <div className="absolute top-0 left-0 right-0 flex justify-center z-30">
             <div
               className="mt-3 rounded-full flex items-center justify-center"
@@ -50,9 +53,18 @@ export const IPhoneSimulator: FC<IPhoneSimulatorProps> = ({ children }) => {
               />
             </div>
           </div>
+          )}
 
-          {/* Screen content */}
-          <div className="absolute inset-0 pt-14 overflow-hidden">{children}</div>
+          {/* Screen content — real screenshot (full-bleed) or live children */}
+          {screenshotSrc ? (
+            <img
+              src={screenshotSrc}
+              alt="Haptic metronome running on iPhone"
+              className="absolute inset-0 w-full h-full object-cover object-top z-0"
+            />
+          ) : (
+            <div className="absolute inset-0 pt-14 overflow-hidden">{children}</div>
+          )}
 
           {/* Home indicator */}
           <div className="absolute bottom-2 left-0 right-0 flex justify-center z-30">
